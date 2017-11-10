@@ -41,8 +41,11 @@ const cpu = {
       case 5:
         this.MUL = true;
         break;
-      case 6:
+      case 6: // PRINT_NUMERIC
         console.log(this.registers[this.activeRegister]);
+        break;
+      case 7: // PRINT_ALPHA
+        console.log(String.fromCharCode(this.registers[this.activeRegister]));
         break;
     }
   }
