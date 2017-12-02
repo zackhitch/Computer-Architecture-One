@@ -56,7 +56,43 @@ class Computer {
         this.PC = this.SP = 0;
         this.reg = new Array(256); // registers
         this.mem = new Array(256); // memory
+
+		this.setupBranchTable();
     }
+	
+	/**
+	 * Sets up the branch table
+	 */
+	setupBranchTable() {
+		let bt = {};
+
+		bt[HALT] = this.HALT;
+		bt[INIT] = this.INIT;
+		bt[SET] = this.SET;
+		bt[SAVE] = this.SAVE;
+		bt[MUL] = this.MUL;
+		bt[PRN] = this.PRN;
+		bt[PRA] = this.PRA;
+		bt[LD] = this.LD;
+		bt[ST] = this.ST;
+		bt[LDRI] = this.LDRI;
+		bt[PUSH] = this.PUSH;
+		bt[POP] = this.POP;
+		bt[ADD] = this.ADD;
+		bt[SUB] = this.SUB;
+		bt[DIV] = this.DIV;
+		bt[CALL] = this.CALL;
+		bt[RET] = this.RET;
+		bt[JMP] = this.JMP;
+		bt[JEQ] = this.JEQ;
+		bt[JNE] = this.JNE;
+		bt[CMPI] = this.CMPI;
+		bt[CMP] = this.CMP;
+		bt[INC] = this.INC;
+		bt[DEC] = this.DEC;
+
+		this.branchTable = bt;
+	}
 
     /**
      * Store in memory
@@ -91,108 +127,17 @@ class Computer {
         const IR = this.mem[this.PC];
         //console.log(`${this.PC}: ${IR.toString(2)}`);
 
-        switch (IR) {
-            case HALT:
-                this.HALT();
-                break;
+		const handler = this.branchTable[IR];
 
-            case INIT:
-                this.INIT();
-                break;
+		if (handler === undefined) {
+			console.log(`ERROR: invalid instruction ${IR.toString(2)}`);
+			this.stopClock();
+			return;
+		}
 
-            case SET:
-                this.SET();
-                break;
-
-            case SAVE:
-                this.SAVE();
-                break;
-            
-            case MUL:
-                this.MUL();
-                break;
-
-            case PRN:
-                this.PRN();
-                break;
-
-            case PRA:
-                this.PRA();
-                break;
-
-            case LD:
-                this.LD();
-                break;
-
-            case ST:
-                this.ST();
-                break;
-
-            case LDRI:
-                this.LDRI();
-                break;
-
-            case PUSH:
-                this.PUSH();
-                break;
-
-            case POP:
-                this.POP();
-                break;
-
-            case ADD:
-                this.ADD();
-                break;
-
-            case SUB:
-                this.SUB();
-                break;
-
-            case DIV:
-                this.DIV();
-                break;
-
-            case CALL:
-                this.CALL();
-                break;
-
-            case RET:
-                this.RET();
-                break;
-
-            case JMP:
-                this.JMP();
-                break;
-
-            case JEQ:
-                this.JEQ();
-                break;
-
-            case JNE:
-                this.JNE();
-                break;
-
-            case CMPI:
-                this.CMPI();
-                break;
-
-            case CMP:
-                this.CMP();
-                break;
-
-            case INC:
-                this.INC();
-                break;
-
-            case DEC:
-                this.DEC();
-                break;
-
-            default:
-                console.log(`ERROR: invalid instruction ${IR.toString(2)}`);
-                this.stopClock();
-                break;
-        }
+		// We need to use call() so we can set the "this" value inside
+		// the handler (otherwise it will be undefined in the handler)
+		handler.call(this);
     }
 
     /**
