@@ -1,3 +1,22 @@
+/**
+ * LS8 CPU implementation
+ * 
+ * Bits and pieces
+ *   o Branch table
+ *   o Basic instructions
+ *   o PC
+ *   o IR
+ *   o MAR/MDR
+ *   o ALU
+ * 
+ *   o Additional math
+ *   o Load/Store
+ *   o Load/Store register indirect
+ *   o Push/Pop stack
+ *   o Call/Return
+ *   o Compare/Branch, flags
+ *   o Inc/Dec
+ */
 const fs = require('fs');
 
 // Instructions
