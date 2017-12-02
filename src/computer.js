@@ -93,7 +93,7 @@ class Computer {
 
         switch (IR) {
             case HALT:
-                this.stopClock();
+                this.HALT();
                 break;
 
             case INIT:
@@ -193,6 +193,13 @@ class Computer {
                 this.stopClock();
                 break;
         }
+    }
+
+    /**
+     * HALT
+     */
+    HALT() {
+        this.stopClock();
     }
 
     /**
