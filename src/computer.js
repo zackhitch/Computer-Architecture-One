@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 // Instructions
 
 // Basic CPU
@@ -12,6 +14,7 @@ const PRA  = 0b00000111; // Print alpha char
 // Load/Store Extension
 const LD   = 0b00001000; // Load M(emory)
 const ST   = 0b00001001; // Store M(emory)
+const LDRI = 0b00010010; // Load-Register-Indirect R
 
 // Push/Pop Extension
 // Uses register 255 as the stack pointer 
@@ -28,9 +31,15 @@ const CALL = 0b00001111; // Call
 const RET  = 0b00010000; // Return
 
 // Compare/Branch Extension
-//CMP I 
-//CMP R 
-//JEQ A 
+const JMP  = 0b00010001; // JMP
+const JEQ  = 0b00010011; // JEQ
+const JNE  = 0b00010100; // JNE
+const CMPI = 0b00010101; // CMP I
+const CMP  = 0b00010110; // CMP R
+
+// Increment/Decrement Extension
+const INC  = 0b00010111; // INC
+const DEC  = 0b00011000; // DEC
 
 /**
  * Class for simulating a simple Computer (CPU & memory)
@@ -41,8 +50,10 @@ class Computer {
      * Initialize the CPU
      */
     constructor() {
+        this.flags = {
+            equal: false
+        };
         this.PC = this.SP = 0;
-        this.curReg = 0;
         this.reg = new Array(256); // registers
         this.mem = new Array(256); // memory
     }
@@ -78,7 +89,7 @@ class Computer {
     tick() {
         // Load the instruction register from the current PC
         const IR = this.mem[this.PC];
-        //console.log(`Executing ${IR.toString(2)}`);
+        //console.log(`${this.PC}: ${IR.toString(2)}`);
 
         switch (IR) {
             case HALT:
@@ -117,6 +128,10 @@ class Computer {
                 this.ST();
                 break;
 
+            case LDRI:
+                this.LDRI();
+                break;
+
             case PUSH:
                 this.PUSH();
                 break;
@@ -129,18 +144,62 @@ class Computer {
                 this.ADD();
                 break;
 
+            case SUB:
+                this.SUB();
+                break;
+
+            case DIV:
+                this.DIV();
+                break;
+
+            case CALL:
+                this.CALL();
+                break;
+
+            case RET:
+                this.RET();
+                break;
+
+            case JMP:
+                this.JMP();
+                break;
+
+            case JEQ:
+                this.JEQ();
+                break;
+
+            case JNE:
+                this.JNE();
+                break;
+
+            case CMPI:
+                this.CMPI();
+                break;
+
+            case CMP:
+                this.CMP();
+                break;
+
+            case INC:
+                this.INC();
+                break;
+
+            case DEC:
+                this.DEC();
+                break;
+
             default:
-                console.error(`Invalid instruction ${IR.toString(2)}`);
+                console.log(`ERROR: invalid instruction ${IR.toString(2)}`);
                 this.stopClock();
                 break;
         }
-
     }
 
     /**
      * INIT
      */
     INIT() {
+        this.flags.equal = false;
         this.curReg = 0;
         this.reg.fill(0);
         this.PC++;
@@ -179,7 +238,7 @@ class Computer {
      * PRN
      */
     PRN() {
-        console.log(this.reg[this.curReg]);
+        fs.writeSync(process.stdout.fd, this.reg[this.curReg]);
         this.PC++;
     }
 
@@ -187,7 +246,7 @@ class Computer {
      * PRA
      */
     PRA() {
-        console.log(String.fromCharCode(this.reg[this.curReg]));
+        fs.writeSync(process.stdout.fd, String.fromCharCode(this.reg[this.curReg]));
         this.PC++;
     }
 
@@ -210,6 +269,18 @@ class Computer {
     }
 
     /**
+     * LDRI R
+     */
+    LDRI() {
+        const reg = this.mem[this.PC+1];
+        const regVal = this.reg[reg];
+        const memVal = this.mem[regVal];
+        this.reg[this.curReg] = memVal;
+
+        this.PC += 2;
+    }
+
+    /**
      * Internal push helper, doesn't move PC
      */
     _push(val) {
@@ -226,7 +297,7 @@ class Computer {
      * PUSH
      */
     PUSH() {
-        _push(this.reg[this.curReg]);
+        this._push(this.reg[this.curReg]);
         this.PC++;
     }
 
@@ -249,7 +320,7 @@ class Computer {
      * POP
      */
     POP() {
-        this.reg[this.curReg] = _pop();
+        this.reg[this.curReg] = this._pop();
         this.PC++;
     }
 
@@ -289,7 +360,7 @@ class Computer {
         const regVal1 = this.reg[regNum1];
 
         if (regVal1 === 0) {
-            console.error('ERROR: DIV 0');
+            console.log('ERROR: divide by 0');
             this.stopClock();
         }
 
@@ -302,7 +373,7 @@ class Computer {
      */
     CALL() {
         // Save the return address on the stack
-        _push(this.PC + 1); // +1 to make the next instruction the return address
+        this._push(this.PC + 1); // +1 to make the next instruction the return address
 
         // Address we're going to call to
         const addr = this.reg[this.curReg];
@@ -314,7 +385,84 @@ class Computer {
      */
     RET() {
         // Pop the return address off the stack and put straight in PC
-        this.PC = _pop();
+        this.PC = this._pop();
+    }
+
+    /**
+     * JMP
+     */
+    JMP() {
+        this.PC = this.reg[this.curReg];
+    }
+
+    /**
+     * JEQ
+     */
+    JEQ() {
+        if (this.flags.equal) {
+            this.PC = this.reg[this.curReg];
+        } else {
+            this.PC++;
+        }
+    }
+
+    /**
+     * JNE
+     */
+    JNE() {
+        if (!this.flags.equal) {
+            this.PC = this.reg[this.curReg];
+        } else {
+            this.PC++;
+        }
+    }
+
+    /**
+     * CMPI
+     */
+    CMPI() {
+        const val = this.mem[this.PC+1];
+        this.flags.equal = this.reg[this.curReg] === val;
+        this.PC += 2;
+    }
+
+    /**
+     * CMP
+     */
+    CMP() {
+        const val = this.reg[this.PC+1];
+        this.flags.equal = this.reg[this.curReg] === val;
+        this.PC += 2;
+    }
+
+    /**
+     * INC
+     */
+    INC() {
+        let val = this.reg[this.curReg];
+
+        val++;
+        // 8-bit values wrap at 256
+        if (val > 255) { val = 0; }
+
+        this.reg[this.curReg] = val;
+
+        this.PC++;
+    }
+
+    /**
+     * DEC
+     */
+    DEC() {
+        let val = this.reg[this.curReg];
+
+        val--;
+        // 8-bit values wrap at -1
+        if (val < 0) { val = 255; }
+
+        this.reg[this.curReg] = val;
+
+        this.PC++;
     }
 }
 

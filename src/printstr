@@ -1,0 +1,82 @@
+# Prints Hello, world!
+#
+# Declares a subroutine that prints a string at a given address
+#
+# Run with:
+#
+# node microbusarchitecture < printstr
+#
+
+# MAIN
+00000010 # SET 0
+00000000
+00000100 # SAVE 40, address of string to print in r0
+00101000
+00000010 # SET 1
+00000001
+00000100 # SAVE 14, number of bytes to print in r1
+00001110
+00000010 # SET 2
+00000010
+00000100 # SAVE address of PrintStr in r2
+00001110 # PrintStr is at address 14
+00001111 # CALL PrintStr
+00000000 # HALT
+
+# Subroutine: PrintStr
+# r0 the address of the string
+# r1 the number of bytes to print
+# [address 14]
+
+# Check to see if we're done
+00000010 # SET 1
+00000001
+00010101 # CMPI 0 Compare r1 to 0
+00000000
+00000010 # SET 2
+00000010
+00000100 # SAVE 24
+00011000
+00010100 # JNE address 24
+00010000 # RET, we're done
+
+# Load the character and print
+# [address 24]
+00000010 # SET 2
+00000010
+00010010 # LDRI 1 Load r2 from address pointed to by r0
+00000000
+00000111 # PRA Print alpha in r2
+
+# add 1 to r0, the address to print
+00000010 # SET 0
+00000000
+00010111 # INC
+
+# decrement r1, the number of characters
+00000010 # SET 1
+00000001
+00011000 # DEC
+
+00000010 # SET 2
+00000010
+00000100 # SAVE 14, address of PrintStr
+00001110
+00010001 # JMP
+
+# Start of printable data
+# [address 40]
+01001000 # H
+01100101 # e
+01101100 # l
+01101100 # l
+01101111 # o
+00101100 # ,
+00100000 #  
+01110111 # w
+01101111 # o
+01110010 # r
+01101100 # l
+01100100 # d
+00100001 # !
+00001010 # newline
