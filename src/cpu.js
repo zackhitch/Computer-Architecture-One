@@ -145,6 +145,23 @@ class CPU {
     }
 
     /**
+     * ALU functionality
+     */
+    alu(op, r0, r1) {
+        let regVal0, regVal1;
+
+        switch (op) {
+            case 'MUL':
+                regVal0 = this.reg[regNum0];
+                regVal1 = this.reg[regNum1];
+
+                this.reg[this.curReg] = regVal0 * regVal1;
+                break;
+        }
+
+    }
+
+    /**
      * Advances the CPU one cycle
      */
     tick() {
@@ -219,10 +236,8 @@ class CPU {
         this.loadMem();
         const regNum1 = this.reg.MDR;
 
-        const regVal0 = this.reg[regNum0];
-        const regVal1 = this.reg[regNum1];
+        alu('MUL', regNum0, regNum1);
 
-        this.reg[this.curReg] = regVal0 * regVal1;
         this.reg.PC += 3;
     }
 
