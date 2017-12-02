@@ -44,7 +44,7 @@ const DEC  = 0b00011000; // DEC
 /**
  * Class for simulating a simple Computer (CPU & memory)
  */
-class Computer {
+class CPU {
 
     /**
      * Initialize the CPU
@@ -418,4 +418,4 @@ class Computer {
     }
 }
 
-module.exports = Computer;
+module.exports = CPU;

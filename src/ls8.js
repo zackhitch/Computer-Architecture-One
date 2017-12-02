@@ -1,14 +1,14 @@
 const fs = require('fs');
-const Computer = require('./computer');
+const CPU = require('./cpu');
 
 /**
- * Load the file into the Computer from stdin
+ * Load the file into the CPU from stdin
  */
-function loadFileFromStdin(comp, onComplete) {
+function loadFileFromStdin(cpu, onComplete) {
     let content = '';
 
     function processFile() {
-        // Pointer to the memory address in the Computer that we're
+        // Pointer to the memory address in the CPU that we're
         // loading a value into:
         let curAddr = 0;
         const lines = content.split('\n');
@@ -44,13 +44,13 @@ function loadFileFromStdin(comp, onComplete) {
 
             // Ok, we have a good value, so store it into memory:
             //console.log(`storing ${binValue}, ${line}`);
-            comp.store(curAddr, binValue);
+            cpu.store(curAddr, binValue);
 
             // And on to the next one
             curAddr++;
         }
 
-        onComplete(comp);
+        onComplete(cpu);
     }
 
     // Read everything from standard input, stolen from:
@@ -63,15 +63,15 @@ function loadFileFromStdin(comp, onComplete) {
 /**
  * On File Loaded
  * 
- * Computer is set up, start it running
+ * CPU is set up, start it running
  */
-function onFileLoaded(comp) {
-    comp.startClock();
+function onFileLoaded(cpu) {
+    cpu.startClock();
 }
 
 /**
  * Main
  */
 
-let comp = new Computer();
-loadFileFromStdin(comp, onFileLoaded);
+let cpu = new CPU();
+loadFileFromStdin(cpu, onFileLoaded);
