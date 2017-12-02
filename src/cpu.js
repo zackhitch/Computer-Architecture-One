@@ -50,12 +50,19 @@ class CPU {
      * Initialize the CPU
      */
     constructor() {
+        // CPU flags
         this.flags = {
             equal: false
         };
-        this.PC = this.SP = 0;
-        this.reg = new Array(256); // registers
-        this.mem = new Array(256); // memory
+
+        this.reg = new Array(256); // General-purpose registers
+
+        // Special-purpose registers
+        this.reg.PC = 0; // Program Counter
+        this.reg.IR = 0; // Intruction Register
+        this.reg.SP = 0; // Stack Pointer
+
+        this.mem = new Array(256); // Memory (RAM)
 
 		this.setupBranchTable();
     }
@@ -124,13 +131,13 @@ class CPU {
      */
     tick() {
         // Load the instruction register from the current PC
-        const IR = this.mem[this.PC];
-        //console.log(`${this.PC}: ${IR.toString(2)}`);
+        this.reg.IR = this.mem[this.reg.PC];
+        //console.log(`${this.reg.PC}: ${IR.toString(2)}`);
 
-		const handler = this.branchTable[IR];
+		const handler = this.branchTable[this.reg.IR];
 
 		if (handler === undefined) {
-			console.log(`ERROR: invalid instruction ${IR.toString(2)}`);
+			console.log(`ERROR: invalid instruction ${this.reg.IR.toString(2)}`);
 			this.stopClock();
 			return;
 		}
@@ -154,36 +161,36 @@ class CPU {
         this.flags.equal = false;
         this.curReg = 0;
         this.reg.fill(0);
-        this.PC++;
+        this.reg.PC++;
     }
 
     /**
      * SET R
      */
     SET() {
-        this.curReg = this.mem[this.PC+1];
-        this.PC += 2;
+        this.curReg = this.mem[this.reg.PC+1];
+        this.reg.PC += 2;
     }
 
     /**
      * SAVE I
      */
     SAVE() {
-        this.reg[this.curReg] = this.mem[this.PC+1];
-        this.PC += 2;
+        this.reg[this.curReg] = this.mem[this.reg.PC+1];
+        this.reg.PC += 2;
     }
 
     /**
      * MUL R R
      */
     MUL() {
-        const regNum0 = this.mem[this.PC+1];
-        const regNum1 = this.mem[this.PC+2];
+        const regNum0 = this.mem[this.reg.PC+1];
+        const regNum1 = this.mem[this.reg.PC+2];
         const regVal0 = this.reg[regNum0];
         const regVal1 = this.reg[regNum1];
 
         this.reg[this.curReg] = regVal0 * regVal1;
-        this.PC += 3;
+        this.reg.PC += 3;
     }
 
     /**
@@ -191,7 +198,7 @@ class CPU {
      */
     PRN() {
         fs.writeSync(process.stdout.fd, this.reg[this.curReg]);
-        this.PC++;
+        this.reg.PC++;
     }
 
     /**
@@ -199,37 +206,37 @@ class CPU {
      */
     PRA() {
         fs.writeSync(process.stdout.fd, String.fromCharCode(this.reg[this.curReg]));
-        this.PC++;
+        this.reg.PC++;
     }
 
     /**
      * LD M
      */
     LD() {
-        const addr = this.mem[this.PC+1];
+        const addr = this.mem[this.reg.PC+1];
         this.reg[this.curReg] = this.mem[addr];
-        this.PC += 2;
+        this.reg.PC += 2;
     }
 
     /**
      * ST M
      */
     ST() {
-        const addr = this.mem[this.PC+1];
+        const addr = this.mem[this.reg.PC+1];
         this.mem[addr] = this.reg[this.curReg];
-        this.PC += 2;
+        this.reg.PC += 2;
     }
 
     /**
      * LDRI R
      */
     LDRI() {
-        const reg = this.mem[this.PC+1];
+        const reg = this.mem[this.reg.PC+1];
         const regVal = this.reg[reg];
         const memVal = this.mem[regVal];
         this.reg[this.curReg] = memVal;
 
-        this.PC += 2;
+        this.reg.PC += 2;
     }
 
     /**
@@ -237,12 +244,12 @@ class CPU {
      */
     _push(val) {
         // Decrement SP, stack grows down from address 255
-        this.SP--;
+        this.reg.SP--;
 
         // Clamp in range 0-255, wrapping around
-        if (this.SP < 0) { this.SP = 255; }
+        if (this.reg.SP < 0) { this.reg.SP = 255; }
 
-        this.mem[this.SP] = val;
+        this.mem[this.reg.SP] = val;
     }
 
     /**
@@ -250,20 +257,20 @@ class CPU {
      */
     PUSH() {
         this._push(this.reg[this.curReg]);
-        this.PC++;
+        this.reg.PC++;
     }
 
     /**
      * Internal pop helper, doesn't move PC
      */
     _pop() {
-        const val = this.mem[this.SP];
+        const val = this.mem[this.reg.SP];
 
         // Increment SP, stack grows down from address 255
-        this.SP++;
+        this.reg.SP++;
 
         // Clamp in range 0-255, wrapping around
-        if (this.SP > 255) { this.SP = 0; }
+        if (this.reg.SP > 255) { this.reg.SP = 0; }
 
         return val;
     }
@@ -273,41 +280,41 @@ class CPU {
      */
     POP() {
         this.reg[this.curReg] = this._pop();
-        this.PC++;
+        this.reg.PC++;
     }
 
     /**
      * ADD R R
      */
     ADD() {
-        const regNum0 = this.mem[this.PC+1];
-        const regNum1 = this.mem[this.PC+2];
+        const regNum0 = this.mem[this.reg.PC+1];
+        const regNum1 = this.mem[this.reg.PC+2];
         const regVal0 = this.reg[regNum0];
         const regVal1 = this.reg[regNum1];
 
         this.reg[this.curReg] = regVal0 + regVal1;
-        this.PC += 3;
+        this.reg.PC += 3;
     }
 
     /**
      * SUB R R
      */
     SUB() {
-        const regNum0 = this.mem[this.PC+1];
-        const regNum1 = this.mem[this.PC+2];
+        const regNum0 = this.mem[this.reg.PC+1];
+        const regNum1 = this.mem[this.reg.PC+2];
         const regVal0 = this.reg[regNum0];
         const regVal1 = this.reg[regNum1];
 
         this.reg[this.curReg] = regVal0 - regVal1;
-        this.PC += 3;
+        this.reg.PC += 3;
     }
 
     /**
      * DIV R R
      */
     DIV() {
-        const regNum0 = this.mem[this.PC+1];
-        const regNum1 = this.mem[this.PC+2];
+        const regNum0 = this.mem[this.reg.PC+1];
+        const regNum1 = this.mem[this.reg.PC+2];
         const regVal0 = this.reg[regNum0];
         const regVal1 = this.reg[regNum1];
 
@@ -317,7 +324,7 @@ class CPU {
         }
 
         this.reg[this.curReg] = regVal0 / regVal1;
-        this.PC += 3;
+        this.reg.PC += 3;
     }
 
     /**
@@ -325,11 +332,11 @@ class CPU {
      */
     CALL() {
         // Save the return address on the stack
-        this._push(this.PC + 1); // +1 to make the next instruction the return address
+        this._push(this.reg.PC + 1); // +1 to make the next instruction the return address
 
         // Address we're going to call to
         const addr = this.reg[this.curReg];
-        this.PC = addr;
+        this.reg.PC = addr;
     }
 
     /**
@@ -337,14 +344,14 @@ class CPU {
      */
     RET() {
         // Pop the return address off the stack and put straight in PC
-        this.PC = this._pop();
+        this.reg.PC = this._pop();
     }
 
     /**
      * JMP
      */
     JMP() {
-        this.PC = this.reg[this.curReg];
+        this.reg.PC = this.reg[this.curReg];
     }
 
     /**
@@ -352,9 +359,9 @@ class CPU {
      */
     JEQ() {
         if (this.flags.equal) {
-            this.PC = this.reg[this.curReg];
+            this.reg.PC = this.reg[this.curReg];
         } else {
-            this.PC++;
+            this.reg.PC++;
         }
     }
 
@@ -363,9 +370,9 @@ class CPU {
      */
     JNE() {
         if (!this.flags.equal) {
-            this.PC = this.reg[this.curReg];
+            this.reg.PC = this.reg[this.curReg];
         } else {
-            this.PC++;
+            this.reg.PC++;
         }
     }
 
@@ -373,18 +380,18 @@ class CPU {
      * CMPI
      */
     CMPI() {
-        const val = this.mem[this.PC+1];
+        const val = this.mem[this.reg.PC+1];
         this.flags.equal = this.reg[this.curReg] === val;
-        this.PC += 2;
+        this.reg.PC += 2;
     }
 
     /**
      * CMP
      */
     CMP() {
-        const val = this.reg[this.PC+1];
+        const val = this.reg[this.reg.PC+1];
         this.flags.equal = this.reg[this.curReg] === val;
-        this.PC += 2;
+        this.reg.PC += 2;
     }
 
     /**
@@ -399,7 +406,7 @@ class CPU {
 
         this.reg[this.curReg] = val;
 
-        this.PC++;
+        this.reg.PC++;
     }
 
     /**
@@ -414,7 +421,7 @@ class CPU {
 
         this.reg[this.curReg] = val;
 
-        this.PC++;
+        this.reg.PC++;
     }
 }
 
