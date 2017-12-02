@@ -58,9 +58,11 @@ class CPU {
         this.reg = new Array(256); // General-purpose registers
 
         // Special-purpose registers
-        this.reg.PC = 0; // Program Counter
-        this.reg.IR = 0; // Intruction Register
-        this.reg.SP = 0; // Stack Pointer
+        this.reg.PC  = 0; // Program Counter
+        this.reg.IR  = 0; // Intruction Register
+        this.reg.SP  = 0; // Stack Pointer
+        this.reg.MAR = 0; // Memory Address Register
+        this.reg.MDR = 0; // Memory Data Register
 
         this.mem = new Array(256); // Memory (RAM)
 
@@ -102,10 +104,26 @@ class CPU {
 	}
 
     /**
-     * Store in memory
+     * Store value in memory address, useful for program loading
      */
-    store(address, value) {
-        this.mem[address] = value;
+    poke(address, value) {
+        this.reg.MAR = address;
+        this.reg.MDR = value;
+        this.storeMem();
+    }
+
+    /**
+     * Store in mem location MAR the value MDR
+     */
+    storeMem() {
+        this.mem[this.reg.MAR] = this.reg.MDR;
+    }
+
+    /**
+     * Load from memory into MDR from MAR
+     */
+    loadMem(address) {
+        this.reg.MDR = this.mem[this.reg.MAR];
     }
 
     /**
@@ -131,8 +149,11 @@ class CPU {
      */
     tick() {
         // Load the instruction register from the current PC
-        this.reg.IR = this.mem[this.reg.PC];
-        //console.log(`${this.reg.PC}: ${IR.toString(2)}`);
+        this.reg.MAR = this.reg.PC;
+        this.loadMem();
+        this.reg.IR = this.reg.MDR;
+
+        //console.log(`${this.reg.PC}: ${this.reg.IR.toString(2)}`);
 
         // Based on the value in the Instruction Register, jump to the
         // appropriate hander
@@ -170,7 +191,9 @@ class CPU {
      * SET R
      */
     SET() {
-        this.curReg = this.mem[this.reg.PC+1];
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        this.curReg = this.reg.MDR;
         this.reg.PC += 2;
     }
 
@@ -178,7 +201,9 @@ class CPU {
      * SAVE I
      */
     SAVE() {
-        this.reg[this.curReg] = this.mem[this.reg.PC+1];
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        this.reg[this.curReg] = this.reg.MDR;
         this.reg.PC += 2;
     }
 
@@ -186,8 +211,14 @@ class CPU {
      * MUL R R
      */
     MUL() {
-        const regNum0 = this.mem[this.reg.PC+1];
-        const regNum1 = this.mem[this.reg.PC+2];
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const regNum0 = this.reg.MDR;
+
+        this.reg.MAR = this.reg.PC + 2;
+        this.loadMem();
+        const regNum1 = this.reg.MDR;
+
         const regVal0 = this.reg[regNum0];
         const regVal1 = this.reg[regNum1];
 
@@ -215,8 +246,19 @@ class CPU {
      * LD M
      */
     LD() {
-        const addr = this.mem[this.reg.PC+1];
-        this.reg[this.curReg] = this.mem[addr];
+        // First get the address we want to load from
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const addr = this.reg.MDR;
+
+        // Then load the data from that address
+        this.reg.MAR = addr;
+        this.loadMem();
+        const value = this.reg.MDR;
+
+        // Then store it in the register
+        this.reg[this.curReg] = value;
+
         this.reg.PC += 2;
     }
 
@@ -224,19 +266,40 @@ class CPU {
      * ST M
      */
     ST() {
-        const addr = this.mem[this.reg.PC+1];
-        this.mem[addr] = this.reg[this.curReg];
+        // First get the address we want to store to
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const addr = this.reg.MDR;
+
+        // Then store the register value at that address
+        this.reg.MAR = addr;
+        this.reg.MDR = this.reg[this.curReg];
+        this.storeMem();
+
         this.reg.PC += 2;
     }
 
     /**
      * LDRI R
+     * 
+     * Load register indirect. Load the value into the current register that the
+     * given register points to.
      */
     LDRI() {
-        const reg = this.mem[this.reg.PC+1];
-        const regVal = this.reg[reg];
-        const memVal = this.mem[regVal];
-        this.reg[this.curReg] = memVal;
+        // First, get the pointer register number
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const reg = this.reg.MDR;
+
+        // Get the address stored in that register
+        const addr = this.reg[reg];
+
+        // Load the value at that address
+        this.reg.MAR = addr;
+        this.loadMem();
+
+        // Store the result in the current register
+        this.reg[this.curReg] = this.reg.MDR;
 
         this.reg.PC += 2;
     }
@@ -251,7 +314,10 @@ class CPU {
         // Clamp in range 0-255, wrapping around
         if (this.reg.SP < 0) { this.reg.SP = 255; }
 
-        this.mem[this.reg.SP] = val;
+        // Store value at the current SP
+        this.reg.MAR = this.reg.SP;
+        this.reg.MDR = val;
+        this.storeMem();
     }
 
     /**
@@ -266,7 +332,9 @@ class CPU {
      * Internal pop helper, doesn't move PC
      */
     _pop() {
-        const val = this.mem[this.reg.SP];
+        this.reg.MAR = this.reg.SP;
+        this.loadMem();
+        const val = this.reg.MDR;
 
         // Increment SP, stack grows down from address 255
         this.reg.SP++;
@@ -289,12 +357,21 @@ class CPU {
      * ADD R R
      */
     ADD() {
-        const regNum0 = this.mem[this.reg.PC+1];
-        const regNum1 = this.mem[this.reg.PC+2];
+        // Load first operand
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const regNum0 = this.reg.MDR;
+
+        // Load second operand
+        this.reg.MAR = this.reg.PC + 2;
+        this.loadMem();
+        const regNum1 = this.reg.MDR;
+        
         const regVal0 = this.reg[regNum0];
         const regVal1 = this.reg[regNum1];
 
         this.reg[this.curReg] = regVal0 + regVal1;
+
         this.reg.PC += 3;
     }
 
@@ -302,12 +379,21 @@ class CPU {
      * SUB R R
      */
     SUB() {
-        const regNum0 = this.mem[this.reg.PC+1];
-        const regNum1 = this.mem[this.reg.PC+2];
+        // Load first operand
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const regNum0 = this.reg.MDR;
+
+        // Load second operand
+        this.reg.MAR = this.reg.PC + 2;
+        this.loadMem();
+        const regNum1 = reg.MDR;
+        
         const regVal0 = this.reg[regNum0];
         const regVal1 = this.reg[regNum1];
 
         this.reg[this.curReg] = regVal0 - regVal1;
+
         this.reg.PC += 3;
     }
 
@@ -315,8 +401,16 @@ class CPU {
      * DIV R R
      */
     DIV() {
-        const regNum0 = this.mem[this.reg.PC+1];
-        const regNum1 = this.mem[this.reg.PC+2];
+        // Load first operand
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const regNum0 = this.reg.MDR;
+
+        // Load second operand
+        this.reg.MAR = this.reg.PC + 2;
+        this.loadMem();
+        const regNum1 = this.reg.MDR;
+        
         const regVal0 = this.reg[regNum0];
         const regVal1 = this.reg[regNum1];
 
@@ -326,6 +420,7 @@ class CPU {
         }
 
         this.reg[this.curReg] = regVal0 / regVal1;
+
         this.reg.PC += 3;
     }
 
@@ -380,10 +475,18 @@ class CPU {
 
     /**
      * CMPI
+     * 
+     * Compare immediate
      */
     CMPI() {
-        const val = this.mem[this.reg.PC+1];
+        // Load immediate value to compare
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const val = this.reg.MDR;
+
+        // Set flag if equal
         this.flags.equal = this.reg[this.curReg] === val;
+
         this.reg.PC += 2;
     }
 
@@ -391,8 +494,16 @@ class CPU {
      * CMP
      */
     CMP() {
-        const val = this.reg[this.reg.PC+1];
+        // Load register number to compare
+        this.reg.MAR = this.reg.PC + 1;
+        this.loadMem();
+        const regNum = this.reg.MDR;
+
+        const val = this.reg[regNum];
+
+        // Set flag if equal
         this.flags.equal = this.reg[this.curReg] === val;
+
         this.reg.PC += 2;
     }
 

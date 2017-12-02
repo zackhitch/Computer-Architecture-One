@@ -44,7 +44,7 @@ function loadFileFromStdin(cpu, onComplete) {
 
             // Ok, we have a good value, so store it into memory:
             //console.log(`storing ${binValue}, ${line}`);
-            cpu.store(curAddr, binValue);
+            cpu.poke(curAddr, binValue);
 
             // And on to the next one
             curAddr++;
