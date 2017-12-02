@@ -41,7 +41,7 @@ class Computer {
      * Initialize the CPU
      */
     constructor() {
-        this.PC = 0;
+        this.PC = this.SP = 0;
         this.curReg = 0;
         this.reg = new Array(256); // registers
         this.mem = new Array(256); // memory
@@ -58,7 +58,7 @@ class Computer {
      * Starts the clock ticking on the CPU
      */
     startClock() {
-        let _this = this;
+        const _this = this;
 
         this.timer = setInterval(() => {
             _this.tick();
@@ -77,7 +77,7 @@ class Computer {
      */
     tick() {
         // Load the instruction register from the current PC
-        let IR = this.mem[this.PC];
+        const IR = this.mem[this.PC];
         //console.log(`Executing ${IR.toString(2)}`);
 
         switch (IR) {
@@ -109,6 +109,26 @@ class Computer {
                 this.PRA();
                 break;
 
+            case LD:
+                this.LD();
+                break;
+
+            case ST:
+                this.ST();
+                break;
+
+            case PUSH:
+                this.PUSH();
+                break;
+
+            case POP:
+                this.POP();
+                break;
+
+            case ADD:
+                this.ADD();
+                break;
+
             default:
                 console.error(`Invalid instruction ${IR.toString(2)}`);
                 this.stopClock();
@@ -127,7 +147,7 @@ class Computer {
     }
 
     /**
-     * SET
+     * SET R
      */
     SET() {
         this.curReg = this.mem[this.PC+1];
@@ -135,7 +155,7 @@ class Computer {
     }
 
     /**
-     * SAVE
+     * SAVE I
      */
     SAVE() {
         this.reg[this.curReg] = this.mem[this.PC+1];
@@ -143,13 +163,13 @@ class Computer {
     }
 
     /**
-     * MUL
+     * MUL R R
      */
     MUL() {
-        let regNum0 = this.mem[this.PC+1];
-        let regNum1 = this.mem[this.PC+2];
-        let regVal0 = this.reg[regNum0];
-        let regVal1 = this.reg[regNum1];
+        const regNum0 = this.mem[this.PC+1];
+        const regNum1 = this.mem[this.PC+2];
+        const regVal0 = this.reg[regNum0];
+        const regVal1 = this.reg[regNum1];
 
         this.reg[this.curReg] = regVal0 * regVal1;
         this.PC += 3;
@@ -169,6 +189,132 @@ class Computer {
     PRA() {
         console.log(String.fromCharCode(this.reg[this.curReg]));
         this.PC++;
+    }
+
+    /**
+     * LD M
+     */
+    LD() {
+        const addr = this.mem[this.PC+1];
+        this.reg[this.curReg] = this.mem[addr];
+        this.PC += 2;
+    }
+
+    /**
+     * ST M
+     */
+    ST() {
+        const addr = this.mem[this.PC+1];
+        this.mem[addr] = this.reg[this.curReg];
+        this.PC += 2;
+    }
+
+    /**
+     * Internal push helper, doesn't move PC
+     */
+    _push(val) {
+        // Decrement SP, stack grows down from address 255
+        this.SP--;
+
+        // Clamp in range 0-255, wrapping around
+        if (this.SP < 0) { this.SP = 255; }
+
+        this.mem[this.SP] = val;
+    }
+
+    /**
+     * PUSH
+     */
+    PUSH() {
+        _push(this.reg[this.curReg]);
+        this.PC++;
+    }
+
+    /**
+     * Internal pop helper, doesn't move PC
+     */
+    _pop() {
+        const val = this.mem[this.SP];
+
+        // Increment SP, stack grows down from address 255
+        this.SP++;
+
+        // Clamp in range 0-255, wrapping around
+        if (this.SP > 255) { this.SP = 0; }
+
+        return val;
+    }
+
+    /**
+     * POP
+     */
+    POP() {
+        this.reg[this.curReg] = _pop();
+        this.PC++;
+    }
+
+    /**
+     * ADD R R
+     */
+    ADD() {
+        const regNum0 = this.mem[this.PC+1];
+        const regNum1 = this.mem[this.PC+2];
+        const regVal0 = this.reg[regNum0];
+        const regVal1 = this.reg[regNum1];
+
+        this.reg[this.curReg] = regVal0 + regVal1;
+        this.PC += 3;
+    }
+
+    /**
+     * SUB R R
+     */
+    SUB() {
+        const regNum0 = this.mem[this.PC+1];
+        const regNum1 = this.mem[this.PC+2];
+        const regVal0 = this.reg[regNum0];
+        const regVal1 = this.reg[regNum1];
+
+        this.reg[this.curReg] = regVal0 - regVal1;
+        this.PC += 3;
+    }
+
+    /**
+     * DIV R R
+     */
+    DIV() {
+        const regNum0 = this.mem[this.PC+1];
+        const regNum1 = this.mem[this.PC+2];
+        const regVal0 = this.reg[regNum0];
+        const regVal1 = this.reg[regNum1];
+
+        if (regVal1 === 0) {
+            console.error('ERROR: DIV 0');
+            this.stopClock();
+        }
+
+        this.reg[this.curReg] = regVal0 / regVal1;
+        this.PC += 3;
+    }
+
+    /**
+     * CALL
+     */
+    CALL() {
+        // Save the return address on the stack
+        _push(this.PC + 1); // +1 to make the next instruction the return address
+
+        // Address we're going to call to
+        const addr = this.reg[this.curReg];
+        this.PC = addr;
+    }
+
+    /**
+     * RET
+     */
+    RET() {
+        // Pop the return address off the stack and put straight in PC
+        this.PC = _pop();
     }
 }
 
