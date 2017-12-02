@@ -105,6 +105,10 @@ class Computer {
                 this.PRN();
                 break;
 
+            case PRA:
+                this.PRA();
+                break;
+
             default:
                 console.error(`Invalid instruction ${IR.toString(2)}`);
                 this.stopClock();
@@ -156,6 +160,14 @@ class Computer {
      */
     PRN() {
         console.log(this.reg[this.curReg]);
+        this.PC++;
+    }
+
+    /**
+     * PRA
+     */
+    PRA() {
+        console.log(String.fromCharCode(this.reg[this.curReg]));
         this.PC++;
     }
 }
