@@ -152,10 +152,48 @@ class CPU {
 
         switch (op) {
             case 'MUL':
-                regVal0 = this.reg[regNum0];
-                regVal1 = this.reg[regNum1];
+                regVal0 = this.reg[r0];
+                regVal1 = this.reg[r1];
 
                 this.reg[this.curReg] = regVal0 * regVal1;
+                break;
+
+            case 'ADD':
+                regVal0 = this.reg[r0];
+                regVal1 = this.reg[r1];
+
+                this.reg[this.curReg] = regVal0 + regVal1;
+                break;
+
+            case 'SUB':
+                regVal0 = this.reg[r0];
+                regVal1 = this.reg[r1];
+
+                this.reg[this.curReg] = regVal0 - regVal1;
+                break;
+
+            case 'DIV':
+                regVal0 = this.reg[r0];
+                regVal1 = this.reg[r1];
+
+                if (regVal1 === 0) {
+                    console.log('ERROR: divide by 0');
+                    this.stopClock();
+                }
+
+                this.reg[this.curReg] = regVal0 / regVal1;
+                break;
+
+            case 'INC':
+                regVal0 = this.reg[r0] + 1;
+                if (regVal0 > 255) { regVal0 = 0; }
+                this.reg[r0] = regVal0;
+                break;
+
+            case 'DEC':
+                regVal0 = this.reg[r0] - 1;
+                if (regVal0 < 0) { regVal0 = 255; }
+                this.reg[r0] = regVal0;
                 break;
         }
 
@@ -201,7 +239,8 @@ class CPU {
         this.flags.equal = false;
         this.curReg = 0;
         this.reg.fill(0, 0, 256);
-        this.reg.PC++;
+
+        this.alu('INC', 'PC'); // Next instruction
     }
 
     /**
@@ -211,7 +250,9 @@ class CPU {
         this.reg.MAR = this.reg.PC + 1;
         this.loadMem();
         this.curReg = this.reg.MDR;
-        this.reg.PC += 2;
+
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -221,7 +262,9 @@ class CPU {
         this.reg.MAR = this.reg.PC + 1;
         this.loadMem();
         this.reg[this.curReg] = this.reg.MDR;
-        this.reg.PC += 2;
+
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -236,9 +279,11 @@ class CPU {
         this.loadMem();
         const regNum1 = this.reg.MDR;
 
-        alu('MUL', regNum0, regNum1);
+        this.alu('MUL', regNum0, regNum1);
 
-        this.reg.PC += 3;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -246,7 +291,7 @@ class CPU {
      */
     PRN() {
         fs.writeSync(process.stdout.fd, this.reg[this.curReg]);
-        this.reg.PC++;
+        this.alu('INC', 'PC'); // Next instruction
     }
 
     /**
@@ -254,7 +299,7 @@ class CPU {
      */
     PRA() {
         fs.writeSync(process.stdout.fd, String.fromCharCode(this.reg[this.curReg]));
-        this.reg.PC++;
+        this.alu('INC', 'PC'); // Next instruction
     }
 
     /**
@@ -274,7 +319,8 @@ class CPU {
         // Then store it in the register
         this.reg[this.curReg] = value;
 
-        this.reg.PC += 2;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -291,7 +337,8 @@ class CPU {
         this.reg.MDR = this.reg[this.curReg];
         this.storeMem();
 
-        this.reg.PC += 2;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -316,7 +363,8 @@ class CPU {
         // Store the result in the current register
         this.reg[this.curReg] = this.reg.MDR;
 
-        this.reg.PC += 2;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -324,10 +372,7 @@ class CPU {
      */
     _push(val) {
         // Decrement SP, stack grows down from address 255
-        this.reg.SP--;
-
-        // Clamp in range 0-255, wrapping around
-        if (this.reg.SP < 0) { this.reg.SP = 255; }
+        this.alu('DEC', 'SP');
 
         // Store value at the current SP
         this.reg.MAR = this.reg.SP;
@@ -340,7 +385,8 @@ class CPU {
      */
     PUSH() {
         this._push(this.reg[this.curReg]);
-        this.reg.PC++;
+
+        this.alu('INC', 'PC'); // Next instruction
     }
 
     /**
@@ -352,10 +398,7 @@ class CPU {
         const val = this.reg.MDR;
 
         // Increment SP, stack grows down from address 255
-        this.reg.SP++;
-
-        // Clamp in range 0-255, wrapping around
-        if (this.reg.SP > 255) { this.reg.SP = 0; }
+        this.alu('INC', 'SP');
 
         return val;
     }
@@ -365,7 +408,8 @@ class CPU {
      */
     POP() {
         this.reg[this.curReg] = this._pop();
-        this.reg.PC++;
+
+        this.alu('INC', 'PC'); // Next instruction
     }
 
     /**
@@ -382,12 +426,11 @@ class CPU {
         this.loadMem();
         const regNum1 = this.reg.MDR;
         
-        const regVal0 = this.reg[regNum0];
-        const regVal1 = this.reg[regNum1];
+        this.alu('ADD', regNum0, regNum1);
 
-        this.reg[this.curReg] = regVal0 + regVal1;
-
-        this.reg.PC += 3;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -404,12 +447,11 @@ class CPU {
         this.loadMem();
         const regNum1 = reg.MDR;
         
-        const regVal0 = this.reg[regNum0];
-        const regVal1 = this.reg[regNum1];
+        this.alu('SUB', regNum0, regNum1);
 
-        this.reg[this.curReg] = regVal0 - regVal1;
-
-        this.reg.PC += 3;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -426,17 +468,11 @@ class CPU {
         this.loadMem();
         const regNum1 = this.reg.MDR;
         
-        const regVal0 = this.reg[regNum0];
-        const regVal1 = this.reg[regNum1];
+        this.alu('DIV', regNum0, regNum1);
 
-        if (regVal1 === 0) {
-            console.log('ERROR: divide by 0');
-            this.stopClock();
-        }
-
-        this.reg[this.curReg] = regVal0 / regVal1;
-
-        this.reg.PC += 3;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -473,7 +509,7 @@ class CPU {
         if (this.flags.equal) {
             this.reg.PC = this.reg[this.curReg];
         } else {
-            this.reg.PC++;
+            this.alu('INC', 'PC'); // Next instruction
         }
     }
 
@@ -484,7 +520,7 @@ class CPU {
         if (!this.flags.equal) {
             this.reg.PC = this.reg[this.curReg];
         } else {
-            this.reg.PC++;
+            this.alu('INC', 'PC'); // Next instruction
         }
     }
 
@@ -502,7 +538,8 @@ class CPU {
         // Set flag if equal
         this.flags.equal = this.reg[this.curReg] === val;
 
-        this.reg.PC += 2;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
     }
 
     /**
@@ -519,37 +556,24 @@ class CPU {
         // Set flag if equal
         this.flags.equal = this.reg[this.curReg] === val;
 
-        this.reg.PC += 2;
+        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', 'PC');
     }
 
     /**
      * INC
      */
     INC() {
-        let val = this.reg[this.curReg];
-
-        val++;
-        // 8-bit values wrap at 256
-        if (val > 255) { val = 0; }
-
-        this.reg[this.curReg] = val;
-
-        this.reg.PC++;
+        this.alu('INC', this.curReg);
+        this.alu('INC', 'PC'); // Next instruction
     }
 
     /**
      * DEC
      */
     DEC() {
-        let val = this.reg[this.curReg];
-
-        val--;
-        // 8-bit values wrap at -1
-        if (val < 0) { val = 255; }
-
-        this.reg[this.curReg] = val;
-
-        this.reg.PC++;
+        this.alu('DEC', this.curReg);
+        this.alu('INC', 'PC'); // Next instruction
     }
 }
 
