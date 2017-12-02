@@ -134,6 +134,8 @@ class CPU {
         this.reg.IR = this.mem[this.reg.PC];
         //console.log(`${this.reg.PC}: ${IR.toString(2)}`);
 
+        // Based on the value in the Instruction Register, jump to the
+        // appropriate hander
 		const handler = this.branchTable[this.reg.IR];
 
 		if (handler === undefined) {
@@ -160,7 +162,7 @@ class CPU {
     INIT() {
         this.flags.equal = false;
         this.curReg = 0;
-        this.reg.fill(0);
+        this.reg.fill(0, 0, 256);
         this.reg.PC++;
     }
 
