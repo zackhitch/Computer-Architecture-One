@@ -83,7 +83,7 @@ It's convenient, as a developer, to have this sequence of powers of two
 memorized at least up to 1024:
 
     1 2 4 8 16 32 64 128 256 512 1024
-    2048 8192 16384 32768 65536
+    2048 4096 8192 16384 32768 65536
 
 These are all powers of 2. 2^0 = 1, 2^2 = 2, 2^3 = 4, etc.
 
