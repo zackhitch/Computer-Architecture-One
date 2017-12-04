@@ -16,7 +16,17 @@
  *   o Call/Return
  *   o Compare/Branch, flags
  *   o Inc/Dec
+ * 
+ * Memory map:
+ * 
+ *   00: code entry
+ *   ..:
+ *   F7: top of stack
+ *   F8: interrupt vector 0
+ *   ..:
+ *   FF: interrupt vector 7
  */
+
 const fs = require('fs');
 
 // Instructions
@@ -60,6 +70,15 @@ const CMP  = 0b00010110; // CMP R
 const INC  = 0b00010111; // INC
 const DEC  = 0b00011000; // DEC
 
+// Interrupts
+const INT  = 0b00011001; // Software interrupt
+const IRET = 0b00011010; // Return from interrupt
+
+// System-utilized general purpose registers
+const IS = 0xfd;  // Interrupt status register
+const IM = 0xfe;  // Interrupt mask register
+const SP = 0xff;  // Stack pointer
+
 /**
  * Class for simulating a simple Computer (CPU & memory)
  */
@@ -71,7 +90,8 @@ class CPU {
     constructor() {
         // CPU flags
         this.flags = {
-            equal: false
+            equal: false,
+            interruptsEnabled: true
         };
 
         this.reg = new Array(256); // General-purpose registers
@@ -79,7 +99,6 @@ class CPU {
         // Special-purpose registers
         this.reg.PC  = 0; // Program Counter
         this.reg.IR  = 0; // Intruction Register
-        this.reg.SP  = 0; // Stack Pointer
         this.reg.MAR = 0; // Memory Address Register
         this.reg.MDR = 0; // Memory Data Register
 
@@ -118,6 +137,8 @@ class CPU {
 		bt[CMP] = this.CMP;
 		bt[INC] = this.INC;
 		bt[DEC] = this.DEC;
+		bt[INT] = this.INT;
+		bt[IRET] = this.IRET;
 
 		this.branchTable = bt;
 	}
@@ -151,16 +172,21 @@ class CPU {
     startClock() {
         const _this = this;
 
-        this.timer = setInterval(() => {
+        this.clock = setInterval(() => {
             _this.tick();
         }, 1);
+
+        this.timerInterrupt = setInterval(() => {
+            _this.interrupts[0] = true;
+        }, 1000);
     }
 
     /**
      * Stops the clock
      */
     stopClock() {
-        clearInterval(this.timer);
+        clearInterval(this.clock);
+        clearInterval(this.timerInterrupt);
     }
 
     /**
@@ -222,6 +248,37 @@ class CPU {
      * Advances the CPU one cycle
      */
     tick() {
+        // Check to see if there's an interrupt
+        if (this.flags.interruptsEnabled) {
+            // Take the current interrupts and mask them out with the interrupt
+            // mask
+            const maskedInterrupts = this.reg[IS] & this.reg[IM];
+
+            // Check all the masked interrupts to see if they're active
+            for (let i = 0; i < 8; i++) {
+                
+                // If it's still 1 after being masked, handle it
+                if (((maskedInterrupts >> i) & 0x01) === 1) {
+                    // Clear this interrupt in the status register
+                    this.reg[IS] &= ~i;
+
+                    // Look up the vector (handler address) in the interrupt
+                    // vector table
+                    this.reg.MAR = 0xff - i;
+                    this.loadMem();
+                    const vector = this.reg.MDR;
+
+                    // We need to come back here
+                    this._push(this.reg.PC);
+                    this.reg.PC = vector; // Jump to it
+
+                    // Only handle one interrupt at a time
+                    this.flags.interruptsEnabled = false;
+                    break;
+                }
+            }
+        }
+
         // Load the instruction register from the current PC
         this.reg.MAR = this.reg.PC;
         this.loadMem();
@@ -391,10 +448,10 @@ class CPU {
      */
     _push(val) {
         // Decrement SP, stack grows down from address 255
-        this.alu('DEC', 'SP');
+        this.alu('DEC', SP);
 
         // Store value at the current SP
-        this.reg.MAR = this.reg.SP;
+        this.reg.MAR = this.reg[SP];
         this.reg.MDR = val;
         this.storeMem();
     }
@@ -412,12 +469,12 @@ class CPU {
      * Internal pop helper, doesn't move PC
      */
     _pop() {
-        this.reg.MAR = this.reg.SP;
+        this.reg.MAR = this.reg[SP];
         this.loadMem();
         const val = this.reg.MDR;
 
         // Increment SP, stack grows down from address 255
-        this.alu('INC', 'SP');
+        this.alu('INC', SP);
 
         return val;
     }
@@ -593,6 +650,28 @@ class CPU {
     DEC() {
         this.alu('DEC', this.curReg);
         this.alu('INC', 'PC'); // Next instruction
+    }
+
+    /**
+     * INT
+     */
+    INT() {
+        // Get interrupt number from current register
+        const intNum = this.reg[this.reg.curReg];
+
+        // Unmask this interrupt number
+        this.reg[IM] |= intNum;
+
+        this.alu('INC', 'PC'); // Next instruction
+    }
+
+    /**
+     * IRET
+     */
+    IRET() {
+        // Pop the return address off the stack and put straight in PC
+        this.reg.PC = this._pop();
+        this.interruptsEnabled = true;
     }
 }
 
