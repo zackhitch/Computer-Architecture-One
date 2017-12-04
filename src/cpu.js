@@ -63,7 +63,6 @@ const RET  = 0b00010000; // Return
 const JMP  = 0b00010001; // JMP
 const JEQ  = 0b00010011; // JEQ
 const JNE  = 0b00010100; // JNE
-const CMPI = 0b00010101; // CMP I
 const CMP  = 0b00010110; // CMP R
 
 // Increment/Decrement Extension
@@ -136,7 +135,6 @@ class CPU {
 		bt[JMP] = this.JMP;
 		bt[JEQ] = this.JEQ;
 		bt[JNE] = this.JNE;
-		bt[CMPI] = this.CMPI;
 		bt[CMP] = this.CMP;
 		bt[INC] = this.INC;
 		bt[DEC] = this.DEC;
@@ -604,28 +602,6 @@ class CPU {
         } else {
             this.alu('INC', 'PC'); // Next instruction
         }
-    }
-
-    /**
-     * CMPI
-     * 
-     * Compare immediate
-     * 
-     * These should be in the ALU, but the ALU would have to be modified to
-     * handle both immediate and register values. Really I should just not
-     * have an immediate compare when we could do a register compare.
-     */
-    CMPI() {
-        // Load immediate value to compare
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const val = this.reg.MDR;
-
-        // Set flag if equal
-        this.flags.equal = this.reg[this.curReg] === val;
-
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
     }
 
     /**
