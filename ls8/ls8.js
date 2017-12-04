@@ -8,6 +8,8 @@ function processFile(content, cpu, onComplete) {
     // Pointer to the memory address in the CPU that we're
     // loading a value into:
     let curAddr = 0;
+    
+    // Split the lines of the content up by newline
     const lines = content.split('\n');
 
     // Loop through each line of machine code
@@ -16,6 +18,7 @@ function processFile(content, cpu, onComplete) {
         // Hunt for a comment
         const commentIndex = line.indexOf('#');
 
+        // If we found one, cut off everything after
         if (commentIndex != -1) {
             line = line.substr(0, commentIndex);
         }
