@@ -242,6 +242,12 @@ class CPU {
                 if (regVal0 < 0) { regVal0 = 255; }
                 this.reg[r0] = regVal0;
                 break;
+
+            case 'CMP':
+                regVal0 = this.reg[r0];
+                regVal1 = this.reg[r1];
+                this.flags.equal = regVal0 === regVal1;
+                break;
         }
 
     }
@@ -613,10 +619,7 @@ class CPU {
         this.loadMem();
         const regNum = this.reg.MDR;
 
-        const val = this.reg[regNum];
-
-        // Set flag if equal
-        this.flags.equal = this.reg[this.curReg] === val;
+        this.alu('CMP', this.curReg, regNum);
 
         this.alu('INC', 'PC'); // Next instruction
         this.alu('INC', 'PC');
