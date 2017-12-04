@@ -10,8 +10,8 @@
 # MAIN
 00000010 # SET 0
 00000000
-00000100 # SAVE 40, address of string to print in r0
-00101000
+00000100 # SAVE 44, address of string to print in r0
+00101100
 00000010 # SET 1
 00000001
 00000100 # SAVE 14, number of bytes to print in r1
@@ -28,20 +28,27 @@
 # r1 the number of bytes to print
 # [address 14]
 
+00000010 # SET r2
+00000010
+00000100 # SAVE 0 into r2 for later CMP
+00000000
+
+# [address 18]
+
 # Check to see if we're done
 00000010 # SET 1
 00000001
-00010101 # CMPI 0 Compare r1 to 0
-00000000
+00010110 # CMP r2 Compare r1 to r2 (0)
+00000010
 00000010 # SET 2
 00000010
-00000100 # SAVE 24
-00011000
-00010100 # JNE address 24
+00000100 # SAVE 28
+00011100
+00010100 # JNE address 28
 00010000 # RET, we're done
 
 # Load the character and print
-# [address 24]
+# [address 28]
 00000010 # SET 2
 00000010
 00010010 # LDRI 1 Load r2 from address pointed to by r0
@@ -60,12 +67,12 @@
 
 00000010 # SET 2
 00000010
-00000100 # SAVE 14, address of PrintStr
+00000100 # SAVE 18, main printStr loop
 00001110
 00010001 # JMP
 
 # Start of printable data
-# [address 40]
+# [address 44]
 01001000 # H
 01100101 # e
 01101100 # l

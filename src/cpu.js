@@ -79,6 +79,9 @@ const IS = 0xfd;  // Interrupt status register
 const IM = 0xfe;  // Interrupt mask register
 const SP = 0xff;  // Stack pointer
 
+// Interrupt numbers
+const INT_TIMER_MASK = (0x1 << 0); // Timer interrupt
+
 /**
  * Class for simulating a simple Computer (CPU & memory)
  */
@@ -177,7 +180,8 @@ class CPU {
         }, 1);
 
         this.timerInterrupt = setInterval(() => {
-            _this.interrupts[0] = true;
+            // Set the timer bit in the IS register
+            _this.reg[IS] |= INT_TIMER_MASK;
         }, 1000);
     }
 
@@ -300,6 +304,8 @@ class CPU {
 		// the handler (otherwise it will be undefined in the handler)
 		handler.call(this);
     }
+
+    // INSTRUCTION HANDLER CODE:
 
     /**
      * HALT
@@ -604,6 +610,10 @@ class CPU {
      * CMPI
      * 
      * Compare immediate
+     * 
+     * These should be in the ALU, but the ALU would have to be modified to
+     * handle both immediate and register values. Really I should just not
+     * have an immediate compare when we could do a register compare.
      */
     CMPI() {
         // Load immediate value to compare
