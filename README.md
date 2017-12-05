@@ -279,7 +279,10 @@ Should produce
 
 `console.log(72)` is not sufficient.
 
-Extra credit:
+Once the basic solution is implemented, continue with the following additional
+goals.
+
+## Add `PRA`, _Print Alpha_
 
 Create one new instruction, `PRA` (_Print Alpha_), which will output the value
 of the active register as an ASCII character instead of an integer. Output
@@ -295,13 +298,13 @@ Should produce
 
 Using the above specified architecture. `console.log('Hello World!')` is not sufficient.
 
-## Stretch Goal 1
+## Add More Math Instructions
 
 Add `ADD`, `SUB`, and `DIV` instructions.
 
 Halt the CPU with an error message if the user attempts to divide by zero.
 
-## Stretch goal 2
+## Add a Stack, and `PUSH` and `POP`
 
 Add a stack. Stacks in CPUs generally start high at the top of memory (address
 255) and grows down as you push onto them.
@@ -309,9 +312,10 @@ Add a stack. Stacks in CPUs generally start high at the top of memory (address
 Add a `PUSH` and `POP` instruction. These push the current register (from `SET`)
 onto the stack or pop the stack into the current register.
 
-## Stretch goal 3
+## Add subroutines, `CALL` and `RET`
 
-Add subroutine calls.
+Add subroutine calls. These are analogous to functions in higher-level
+languages, but don't have any concept of parameters or return values.
 
 A `CALL` instruction should be followed by an address to jump to.
 
@@ -321,9 +325,10 @@ stretch goal).
 A `RET` instruction should pop the return address from the stack and put it in
 the Program Counter.
 
-## Stretch goal 4
+## Memory Manipulation with Load and Store
 
-Add load and store.
+Add load and store. These are instructions that allow you to read and write
+memory addresses directly.
 
 `LD` instruction is followed by an address. It takes the value from that address
 and loads it into the current register.
