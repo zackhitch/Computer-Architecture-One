@@ -295,6 +295,41 @@ Should produce
 
 Using the above specified architecture. `console.log('Hello World!')` is not sufficient.
 
+## Stretch Goal 1
+
+Add `ADD`, `SUB`, and `DIV` instructions.
+
+Halt the CPU with an error message if the user attempts to divide by zero.
+
+## Stretch goal 2
+
+Add a stack. Stacks in CPUs generally start high at the top of memory (address
+255) and grows down as you push onto them.
+
+Add a `PUSH` and `POP` instruction. These push the current register (from `SET`)
+onto the stack or pop the stack into the current register.
+
+## Stretch goal 3
+
+Add subroutine calls.
+
+A `CALL` instruction should be followed by an address to jump to.
+
+It should push the next instruction address onto the stack (from the above
+stretch goal).
+
+A `RET` instruction should pop the return address from the stack and put it in
+the Program Counter.
+
+## Stretch goal 4
+
+Add load and store.
+
+`LD` instruction is followed by an address. It takes the value from that address
+and loads it into the current register.
+
+`ST` instruction is followed by an address. It takes the value the current
+register and stores it in that address.
 
 # Links
 
