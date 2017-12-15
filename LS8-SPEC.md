@@ -361,7 +361,7 @@ Machine code:
 00000010 00000rrr
 ```
 
-# ST
+### ST
 
 `ST memory`
 
