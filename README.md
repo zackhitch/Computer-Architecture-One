@@ -1,8 +1,10 @@
 
 # Computer Architecture One
 
-* [Basic Computer Engineering](basic-comp-eng/)
-* [Binary](binary/)
+## Objectives
+
+* [Understanding Basic Computer Engineering](objectives/basic-comp-eng)
+* [Understanding Binary](objectives/binary)
 
 # Assignment
 
