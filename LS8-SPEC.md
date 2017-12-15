@@ -71,17 +71,16 @@ instruction, the CPU follows the steps outlined in the reference for the
 
 Glossary:
 
-**CR**: Current Register, see above
-**immediate**: takes a constant integer value as an argument
-**register**: takes a register number as an argument
-**memory**: takes a memory address as an argument
+* **CR**: Current Register, see above
+* **immediate**: takes a constant integer value as an argument
+* **register**: takes a register number as an argument
+* **memory**: takes a memory address as an argument
 
-`mmmmmmmm`: 8-bit memory address
-`iiiiiiii`: 8-bit immediate value
-`00000rrr`: Register number
-`00000aaa`: Register number (altnerate)
-`00000bbb`: Register number (altnerate)
-`00000ttt`: Interrupt number
+* `mmmmmmmm`: 8-bit memory address
+* `iiiiiiii`: 8-bit immediate value
+* `00000rrr`: Register number
+* `00000aaa`: Register number (altnerate)
+* `00000bbb`: Register number (altnerate)
 
 ### ADD
 
