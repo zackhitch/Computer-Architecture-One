@@ -110,3 +110,11 @@ Should produce
 
 through the process of executing the machine code in the input file.
 
+
+## Stretch Goals for the week
+
+* Implement a system stack per the spec. Add `PUSH` and `POP` instructions.
+
+* Add subroutine calls. `CALL` and `RET`.
+
+* Add interrupts. `INT` and `IRET`.
