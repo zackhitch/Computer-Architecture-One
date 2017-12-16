@@ -112,12 +112,6 @@ phone. If no one is available, any house plant will do.
 
 * Describe caching and storage from L1 through cloud storage.
 
-* Explain what hyperthreading is.
-
-* Explain how the CPU provides concurrency.
-
-* Describe assembly language and machine language.
-
 * Describe what RAM is and its reponsibility in the system.
 
 * Describe what the hard disk is and its responsibility in the system.
