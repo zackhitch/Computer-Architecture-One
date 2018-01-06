@@ -43,7 +43,9 @@ The value on the left is the machine code value of the instruction
 (_opcode_) or its immediate argument(s) (the _operands_).
 
 
-## Implement a Multiply and Print the Result
+## Improve the LS-8 Emulator
+
+### Implement a Multiply and Print the Result
 
 [See the LS-8 Spec for complete CPU details](LS8-SPEC.md). Note that the
 spec is a complete document, and not all its pieces need to be
@@ -111,10 +113,23 @@ Should produce
 through the process of executing the machine code in the input file.
 
 
-## Stretch Goals for the week
+### Implement System Stack
+
+All CPUs manage a _stack_ that can be used to store information
+temporarily. This stack resides in main memory and typically starts at
+the top of memory (at a high address) and grows _downward_ as things are
+pushed on. The LS-8 is no exception to this.
 
 * Implement a system stack per the spec. Add `PUSH` and `POP` instructions.
 
-* Add subroutine calls. `CALL` and `RET`.
+### Implement Subroutine Calls
 
-* Add interrupts. `INT` and `IRET`.
+Back the my day, functions were called _subroutines_. In machine code,
+this enables you to jump to an address with the `CALL` instruction, and
+then return back to where you called from with the `RET` instruction.
+This enables you to create reusable functions.
+
+The stack is used to hold the return address, so you **must** implement
+the stack, above, first.
+
+* Add subroutine calls. `CALL` and `RET`.
