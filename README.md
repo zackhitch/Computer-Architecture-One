@@ -20,14 +20,14 @@ which is about as simple as it gets.
 An 8 bit CPU is one that only has 8 wires available for addresses (specifying
 where something is), computations, and instructions. With 8 bits, our CPU has a
 total of 256 bytes of memory and can only compute values up to 255. The CPU
-could support 256 instrutions, as well, but we won't need them.
+could support 256 instructions, as well, but we won't need them.
 
 We'll design a memory subsystem, an ALU, and the main CPU emulator code
 in JS. Then we'll write code that loads a file of machine code
 instructions from disk, parses the file, and loads it into memory. After
 that, we'll start the emulator running and see it execute instructions!
 
-For starters, we'll exeute code that initializes the CPU, and then
+For starters, we'll execute code that initializes the CPU, and then
 stores the value 8 in a register.
 
     # init-and-load.ls8
