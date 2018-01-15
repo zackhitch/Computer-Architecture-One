@@ -1,17 +1,12 @@
-# LS-8 Microcomputer Spec v1.0
+# LS-8 Microcomputer Spec v2.0
 
 ## Registers
 
-8 general-purpose 8-bit numberic registers R0-R7.
+8 general-purpose 8-bit numeric registers R0-R7.
 
 R5 is reserved as the interrupt mask (IM)
 R6 is reserved as the interrupt status (IS)
 R7 is reserved as the stack pointer (SP)
-
-Many instructions operate on the _current register_ (_CR_), which is a
-reference to one of the general-purpose registers. The current register
-can be changed with the `SET` instruction. The current register can be
-set to refer to any of the general purpose registers.
 
 
 ## Internal Registers
@@ -58,85 +53,112 @@ Memory map:
 The SP points at the value at the top of the stack, or at address `F8`
 if the stack is empty.
 
+
 ## Interrupts
 
 There are 8 interrupts, I0-I7.
 
 When an interrupt occurs from an external source or from an `INT`
-instruction, the CPU follows the steps outlined in the reference for the
-`INT` instruction, below.
+instruction, the appropriate bit in the IS register will be set.
+
+Prior to instruction fetch, the following steps occur:
+
+1. The IM register is bitwise AND-ed with the IS register and the
+   results stored as `maskedInterrupts`.
+2. Each bit of `maskedInterrupts` is checked, starting from 0 and going
+   up to the 7th bit, one for each interrupt.
+3. If a bit is found to be set, follow the next sequence of steps. Stop
+   further checking of `maskedInterrupts`.
+
+If a bit is set:
+
+1. Disable further interrupts.
+2. Clear the bit in the IS register.
+3. The address of the next instruction is pushed on the stack.
+4. Registers R0-R7 are pushed on the stack in that order.
+5. The address (_vector_ in interrupt terminology) of the appropriate
+   handler is looked up from the interrupt vector table.
+6. Set the PC is set to the handler address.
+
+While an interrupt is being serviced (between the handler being called
+and the `IRET`), further interrupts are disabled.
+
+See `IRET`, below, for returning from an interrupt.
+
+
+### Interrupt numbers
+
+* 0: Timer interrupt
+* 1: Keyboard interrupt
 
 
 ## Instruction Set
 
 Glossary:
 
-* **CR**: Current Register, see above
 * **immediate**: takes a constant integer value as an argument
 * **register**: takes a register number as an argument
-* **memory**: takes a memory address as an argument
 
-* `mmmmmmmm`: 8-bit memory address
 * `iiiiiiii`: 8-bit immediate value
 * `00000rrr`: Register number
-* `00000aaa`: Register number (altnerate)
-* `00000bbb`: Register number (altnerate)
+* `00000aaa`: Register number
+* `00000bbb`: Register number
 
 ### ADD
 
-`ADD register register`
+`ADD registerA registerB`
 
-Add two registers and store the result in CR.
+Add two registers and store the result in registerA.
 
 Machine code:
 ```
 00001100 00000aaa 00000bbb
 ```
 
-### CALL
+### CALL register
 
-`CALL`
+`CALL register`
 
-Calls a subroutine (function) at the address stored in the CR.
+Calls a subroutine (function) at the address stored in the register.
 
 Before the call is made, the address of the _next_ instruction that will execute is pushed onto the stack.
 
 Machine code:
 ```
-00001111
+00001111 00000rrr
 ```
 
 ### CMP
 
-`CMP register`
+`CMP registerA registerB`
 
-Compare the value in CR with that in the given register.
+Compare the value in two registers.
 
 If the are equal, set the `equal` flag to true.
 If the are not equal, set the `equal` flag to false.
 
 Machine code:
 ```
-00010110 00000rrr
+00010110 00000aaa 00000bbb
 ```
 
 ### DEC
 
-`DEC`
+`DEC register`
 
-Decrement the value in the current register.
+Decrement the value in the given register.
 
 Machine code:
 ```
-00011000
+00011000 00000rrr
 ```
 
 ### DIV
 
-`DIV register register`
+`DIV registerA registerB`
 
 Divide the value in the first register by the value in the second,
-storing the result in CR.
+storing the result in registerA.
 
 If the value in the second register is 0, the system should print an
 error message and halt.
@@ -146,56 +168,40 @@ Machine code:
 0b00001110 00000aaa 00000bbb
 ```
 
-### HALT
+### HLT
 
-`HALT`
+`HLT`
 
 Halt the CPU (and exit the emulator).
 
 Machine code:
 ```
-00000000
+00011011
 ```
 
 ### INC
 
-`INC`
+`INC register`
 
-Increment the value in the current register.
-
-Machine code:
-```
-00010111
-```
-
-### INIT
-
-`INIT`
-
-Initialize the registers by setting R0-R5 to 0.
+Increment the value in the given register.
 
 Machine code:
 ```
-00000001
+00010111 00000rrr
 ```
 
 ### INT
 
-`INT`
+`INT register`
 
-Issue the interrupt number stored in the CR.
+Issue the interrupt number stored in the given register.
 
-The following steps are executed:
-
-1. The address of the next instruction is pushed on the stack.
-2. Registers R0-R5 are pushed on the stack in that order.
-3. The address (_vector_ in interrupt terminiology) of the appropriate
-   handler is looked up from the interrupt vector table. The PC is set
-   to the appropriate value in the vector table.
+This will set the _n_th bit in the IS register to the value in the given
+register.
 
 Machine code:
 ```
-00011001
+00011001 00000rrr
 ```
 
 ### IRET
@@ -206,8 +212,9 @@ Return from an interrupt handler.
 
 The following steps are executed:
 
-1. Registers R5-R0 are popped off the stack in that order.
+1. Registers R7-R0 are popped off the stack in that order.
 2. The return address is popped off the stack and stored in PC.
+3. Interrupts are re-enabled
 
 Machine code:
 ```
@@ -216,114 +223,126 @@ Machine code:
 
 ### JEQ
 
-`JEQ`
+`JEQ register`
 
-If `equal` flag is set (true), jump to the address stored in CR.
+If `equal` flag is set (true), jump to the address stored in the given
+register.
 
 Machine code:
 ```
-00010011
+00010011 00000rrr
 ```
 
 ### JMP
 
-`JMP`
+`JMP register`
 
-Jump to the address stored in the CR.
+Jump to the address stored in the given register.
 
-Set the PC to the address stored in the CR.
+Set the PC to the address stored in the given register.
 
 Machine code:
 ```
-00010001
+00010001 00000rrr
 ```
 
 ### JNE
 
-`JNE`
+`JNE register`
 
-If `equal` flag is clear (false), jump to the address stored in CR.
+If `equal` flag is clear (false), jump to the address stored in the
+given register.
 
 Machine code:
 ```
-00010100
+00010100 00000rrr
 ```
 
 ### LD
 
-`LD memory`
+`LD registerA registerB`
 
-Load value at address into CR.
-
-Machine code:
-```
-00001000 mmmmmmmm
-```
-
-### LDRI
-
-`LDRI register`
-
-Load Register Indirect. Loads the CR with the value at the address stored in the given register.
+Loads registerA with the value at the address stored in registerB.
 
 Machine code:
 ```
-00010010 00000rrr
+00010010 00000aaa 00000bbb
 ```
 
+### LDI
+
+`LDI register immediate`
+
+Set the value of a register.
+
+Machine code:
+```
+00000100 00000rrr iiiiiiii
+```
 ### MUL
 
-`MUL register register`
+`MUL registerA registerB`
 
-Multiply two registers together and store the result in CR.
+Multiply two registers together and store the result in registerA.
 
 Machine code:
 ```
 00000101 00000aaa 00000bbb
 ```
 
-### POP
+### NOP
 
-`POP`
+`NOP`
 
-Pop the value at the top of the stack into the CR.
+No operation. Do nothing for this instruction.
 
 Machine code:
 ```
-00001011
+00000000
+```
+
+### POP
+
+`POP register`
+
+Pop the value at the top of the stack into the given register.
+
+Machine code:
+```
+00001011 00000rrr
 ```
 
 ### PRA
 
-`PRA` pseudo-instruction
+`PRA register` pseudo-instruction
 
-Print alpah character value stored in the CR.
+Print alpha character value stored in the given register.
 
 Machine code:
 ```
-00000111
+00000111 00000rrr
 ```
 
 ### PRN
 
-`PRN` pseudo-instruction
+`PRN register` pseudo-instruction
 
-Print numeric value stored in the CR.
+Print numeric value stored in the given register.
 
 Machine code:
 ```
-00000110
+00000110 00000rrr
 ```
 
 ### PUSH
 
-`PUSH`
+`PUSH register`
 
-Push the CR on the stack.
+Push the given register on the stack.
 
 Machine code:
 ```
-00001010
+00001010 00000rrr
 ```
 
 ### RET
@@ -339,57 +358,23 @@ Machine Code:
 00010000
 ```
 
-### SAVE
-
-`SAVE immediate`
-
-Save a value in the CR.
-
-Machine code:
-```
-00000100 iiiiiiii
-```
-
-### SET
-
-`SET register`
-
-Set the CR to refer to the given register
-
-Machine code:
-```
-00000010 00000rrr
-```
-
 ### ST
 
-`ST memory`
+`ST registerA registerB`
 
-Store value in CR in specified memory address.
-
-Machine code:
-```
-00001001 mmmmmmmm
-```
-
-### STRI
-
-`STRI register`
-
-Store Register Indirect. Stores the value in the CR in the memory
-address stored in the given register.
+Store value in registerB in the address stored in registerA.
 
 Machine code:
 ```
-00011100 00000rrr
+00001001 00000aaa 00000bbb
 ```
 
 ### SUB
 
-`SUB register register`
+`SUB registerA registerB`
 
 Subtract the value in the second register from the first, storing the
-result in CR.
+result in registerA.
 
 Machine code:
 ```
