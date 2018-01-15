@@ -1,85 +1,43 @@
 /**
- * LS8 CPU implementation
- * 
- * Bits and pieces
- *   o Branch table
- *   o Basic instructions
- *   o PC
- *   o IR
- *   o MAR/MDR
- *   o ALU
- * 
- *   o Additional math
- *   o Load/Store
- *   o Load/Store register indirect
- *   o Push/Pop stack
- *   o Call/Return
- *   o Compare/Branch, flags
- *   o Inc/Dec
- * 
- * Memory map:
- * 
- *   00: code entry
- *   ..:
- *   F7: top of stack
- *   F8: interrupt vector 0
- *   ..:
- *   FF: interrupt vector 7
+ * LS-8 v2.0 full emulator
  */
 
 const fs = require('fs');
 
 // Instructions
 
-// Basic CPU
-const HALT = 0b00000000; // Halt CPU
-const INIT = 0b00000001; // Initialize CPU registers to zero
-const SET  = 0b00000010; // SET R(egister)
-const SAVE = 0b00000100; // SAVE I(mmediate)
-const MUL  = 0b00000101; // MUL R R
-const PRN  = 0b00000110; // Print numeric
-const PRA  = 0b00000111; // Print alpha char
-
-// Load/Store Extension
-const LD   = 0b00001000; // Load M(emory)
-const ST   = 0b00001001; // Store M(emory)
-const LDRI = 0b00010010; // Load-Register-Indirect R
-
-// Push/Pop Extension
-// Uses register 255 as the stack pointer 
-const PUSH = 0b00001010; // Push
-const POP  = 0b00001011; // Pop
-
-// Math Extension
 const ADD  = 0b00001100; // ADD R R
-const SUB  = 0b00001101; // SUB R R
-const DIV  = 0b00001110; // DIV R R
-
-// Call/Return Extension
-const CALL = 0b00001111; // Call
-const RET  = 0b00010000; // Return
-
-// Compare/Branch Extension
-const JMP  = 0b00010001; // JMP
-const JEQ  = 0b00010011; // JEQ
-const JNE  = 0b00010100; // JNE
+const CALL = 0b00001111; // Call R
 const CMP  = 0b00010110; // CMP R
-
-// Increment/Decrement Extension
-const INC  = 0b00010111; // INC
-const DEC  = 0b00011000; // DEC
-
-// Interrupts
-const INT  = 0b00011001; // Software interrupt
+const DEC  = 0b00011000; // DEC R
+const DIV  = 0b00001110; // DIV R R
+const HLT  = 0b00011011; // Halt CPU
+const INC  = 0b00010111; // INC R
+const INT  = 0b00011001; // Software interrupt R
 const IRET = 0b00011010; // Return from interrupt
+const JEQ  = 0b00010011; // JEQ R
+const JMP  = 0b00010001; // JMP R
+const JNE  = 0b00010100; // JNE R
+const LD   = 0b00010010; // Load R,R
+const LDI  = 0b00000100; // LDI R,I(mmediate)
+const MUL  = 0b00000101; // MUL R,R
+const NOP  = 0b00000000; // NOP
+const POP  = 0b00001011; // Pop R
+const PRA  = 0b00000111; // Print alpha char
+const PRN  = 0b00000110; // Print numeric
+const PUSH = 0b00001010; // Push R
+const RET  = 0b00010000; // Return
+const ST   = 0b00001001; // Store R,R
+const SUB  = 0b00001101; // SUB R R
 
 // System-utilized general purpose registers
-const IS = 0xfd;  // Interrupt status register
-const IM = 0xfe;  // Interrupt mask register
-const SP = 0xff;  // Stack pointer
+const IM = 0x05;  // Interrupt mask register R5
+const IS = 0x06;  // Interrupt status register R6
+const SP = 0x07;  // Stack pointer R7
 
 // Interrupt numbers
 const INT_TIMER_MASK = (0x1 << 0); // Timer interrupt
+const INT_KEY_MASK   = (0x1 << 1); // Keyboard interrupt
 
 /**
  * Class for simulating a simple Computer (CPU & memory)
@@ -89,22 +47,26 @@ class CPU {
     /**
      * Initialize the CPU
      */
-    constructor() {
+    constructor(ram) {
+        this.ram = ram;
+
         // CPU flags
         this.flags = {
             equal: false,
             interruptsEnabled: true
         };
 
-        this.reg = new Array(256); // General-purpose registers
+        this.reg = new Array(8); // General-purpose registers
+        
+        this.reg[IM] = 0; // All interrupts masked
+        this.reg[IS] = 0; // No interrupts active
+        this.reg[SP] = 0xf8; // Stack empty
 
         // Special-purpose registers
         this.reg.PC  = 0; // Program Counter
-        this.reg.IR  = 0; // Intruction Register
+        this.reg.IR  = 0; // Instruction Register
         this.reg.MAR = 0; // Memory Address Register
         this.reg.MDR = 0; // Memory Data Register
-
-        this.mem = new Array(256); // Memory (RAM)
 
 		this.setupBranchTable();
     }
@@ -115,31 +77,29 @@ class CPU {
 	setupBranchTable() {
 		let bt = {};
 
-		bt[HALT] = this.HALT;
-		bt[INIT] = this.INIT;
-		bt[SET] = this.SET;
-		bt[SAVE] = this.SAVE;
-		bt[MUL] = this.MUL;
-		bt[PRN] = this.PRN;
-		bt[PRA] = this.PRA;
-		bt[LD] = this.LD;
-		bt[ST] = this.ST;
-		bt[LDRI] = this.LDRI;
-		bt[PUSH] = this.PUSH;
-		bt[POP] = this.POP;
 		bt[ADD] = this.ADD;
-		bt[SUB] = this.SUB;
-		bt[DIV] = this.DIV;
 		bt[CALL] = this.CALL;
-		bt[RET] = this.RET;
-		bt[JMP] = this.JMP;
-		bt[JEQ] = this.JEQ;
-		bt[JNE] = this.JNE;
 		bt[CMP] = this.CMP;
-		bt[INC] = this.INC;
 		bt[DEC] = this.DEC;
+		bt[DIV] = this.DIV;
+		bt[HLT] = this.HLT;
+		bt[INC] = this.INC;
 		bt[INT] = this.INT;
 		bt[IRET] = this.IRET;
+		bt[JEQ] = this.JEQ;
+		bt[JMP] = this.JMP;
+		bt[JNE] = this.JNE;
+		bt[LD] = this.LD;
+		bt[LDI] = this.LDI;
+		bt[MUL] = this.MUL;
+		bt[NOP] = this.NOP;
+		bt[POP] = this.POP;
+		bt[PRA] = this.PRA;
+		bt[PRN] = this.PRN;
+		bt[PUSH] = this.PUSH;
+		bt[RET] = this.RET;
+		bt[ST] = this.ST;
+		bt[SUB] = this.SUB;
 
 		this.branchTable = bt;
 	}
@@ -148,23 +108,7 @@ class CPU {
      * Store value in memory address, useful for program loading
      */
     poke(address, value) {
-        this.reg.MAR = address;
-        this.reg.MDR = value;
-        this.storeMem();
-    }
-
-    /**
-     * Store in mem location MAR the value MDR
-     */
-    storeMem() {
-        this.mem[this.reg.MAR] = this.reg.MDR;
-    }
-
-    /**
-     * Load from memory into MDR from MAR
-     */
-    loadMem(address) {
-        this.reg.MDR = this.mem[this.reg.MAR];
+        this.ram.write(address, value);
     }
 
     /**
@@ -194,59 +138,51 @@ class CPU {
     /**
      * ALU functionality
      */
-    alu(op, r0, r1) {
-        let regVal0, regVal1;
+    alu(op, regA, regB, immediate) {
+        let valA, valB;
+
+        // Load valA from regA
+        valA = this.reg[regA];
+
+        // Load valB from regB or immediate
+        if (regB !== null && regB !== undefined) {
+            valB = this.reg[regB];
+        } else {
+            valB = immediate;
+        }
 
         switch (op) {
             case 'MUL':
-                regVal0 = this.reg[r0];
-                regVal1 = this.reg[r1];
-
-                this.reg[this.curReg] = regVal0 * regVal1;
+                this.reg[regA] = (valA * valB) & 255;
                 break;
 
             case 'ADD':
-                regVal0 = this.reg[r0];
-                regVal1 = this.reg[r1];
-
-                this.reg[this.curReg] = regVal0 + regVal1;
+                this.reg[regA] = (valA + valB) & 255;
                 break;
 
             case 'SUB':
-                regVal0 = this.reg[r0];
-                regVal1 = this.reg[r1];
-
-                this.reg[this.curReg] = regVal0 - regVal1;
+                this.reg[regA] = (valA - valB) & 255;
                 break;
 
             case 'DIV':
-                regVal0 = this.reg[r0];
-                regVal1 = this.reg[r1];
-
-                if (regVal1 === 0) {
+                if (valB === 0) {
                     console.log('ERROR: divide by 0');
                     this.stopClock();
                 }
 
-                this.reg[this.curReg] = regVal0 / regVal1;
+                this.reg[regA] = valA / valB;
                 break;
 
             case 'INC':
-                regVal0 = this.reg[r0] + 1;
-                if (regVal0 > 255) { regVal0 = 0; }
-                this.reg[r0] = regVal0;
+                this.reg[regA] = (valA + 1) & 0xff;
                 break;
 
             case 'DEC':
-                regVal0 = this.reg[r0] - 1;
-                if (regVal0 < 0) { regVal0 = 255; }
-                this.reg[r0] = regVal0;
+                this.reg[regA] = (valA - 1) & 0xff;
                 break;
 
             case 'CMP':
-                regVal0 = this.reg[r0];
-                regVal1 = this.reg[r1];
-                this.flags.equal = regVal0 === regVal1;
+                this.flags.equal = valA === valB;
                 break;
         }
 
@@ -267,30 +203,36 @@ class CPU {
                 
                 // If it's still 1 after being masked, handle it
                 if (((maskedInterrupts >> i) & 0x01) === 1) {
-                    // Clear this interrupt in the status register
-                    this.reg[IS] &= ~i;
-
-                    // Look up the vector (handler address) in the interrupt
-                    // vector table
-                    this.reg.MAR = 0xff - i;
-                    this.loadMem();
-                    const vector = this.reg.MDR;
-
-                    // We need to come back here
-                    this._push(this.reg.PC);
-                    this.reg.PC = vector; // Jump to it
 
                     // Only handle one interrupt at a time
                     this.flags.interruptsEnabled = false;
+
+                    // Clear this interrupt in the status register
+                    this.reg[IS] &= ~i;
+
+                    // Push return address
+                    this._push(this.reg.PC);
+
+                    // Push registers R0-R7
+                    for (let r = 0; r <= 7; r++) {
+                        this._push(this.reg[r]);
+                    }
+
+                    // Look up the vector (handler address) in the
+                    // interrupt vector table
+                    const vector = this.ram.read(0xf8 + i);
+
+                    this.reg.PC = vector; // Jump to it
+
+                    // Stop looking for more interrupts, since we do one
+                    // at a time
                     break;
                 }
             }
         }
 
         // Load the instruction register from the current PC
-        this.reg.MAR = this.reg.PC;
-        this.loadMem();
-        this.reg.IR = this.reg.MDR;
+        this.reg.IR = this.ram.read(this.reg.PC);
 
         //console.log(`${this.reg.PC}: ${this.reg.IR.toString(2)}`);
 
@@ -312,166 +254,196 @@ class CPU {
     // INSTRUCTION HANDLER CODE:
 
     /**
-     * HALT
+     * ADD R,R
      */
-    HALT() {
+    ADD() {
+        const regA = this.ram.read(this.reg.PC + 1);
+        const regB = this.ram.read(this.reg.PC + 2);
+
+        this.alu('ADD', regA, regB);
+
+        this.alu('ADD', 'PC', null, 3); // Next instruction
+    }
+
+    /**
+     * CMP R R
+     */
+    CMP() {
+        const regA = this.ram.read(this.reg.PC + 1);
+        const regB = this.ram.read(this.reg.PC + 2);
+
+        this.alu('CMP', regA, regB);
+
+        this.alu('ADD', 'PC', null, 3); // Next instruction
+    }
+
+    /**
+     * DIV R,R
+     */
+    DIV() {
+        const regA = this.ram.read(this.reg.PC + 1);
+        const regB = this.ram.read(this.reg.PC + 2);
+
+        this.alu('DIV', regA, regB);
+
+        this.alu('ADD', 'PC', null, 3); // Next instruction
+    }
+
+    /**
+     * CALL R
+     */
+    CALL() {
+        const reg = this.ram.read(this.reg.PC + 1);
+
+        // Save the return address on the stack
+        this._push(this.reg.PC + 2); // +2 to make the next instruction the return address
+
+        // Address we're going to call to
+        const addr = this.reg[reg];
+         
+        // Set PC so we start executing here
+        this.reg.PC = addr;
+    }
+
+    /**
+     * DEC
+     */
+    DEC() {
+        const reg = this.ram.read(this.reg.PC + 1);
+
+        this.alu('DEC', reg);
+
+        this.alu('ADD', 'PC', null, 2); // Next instruction
+    }
+
+    /**
+     * HLT
+     */
+    HLT() {
         this.stopClock();
     }
 
     /**
-     * INIT
+     * INC R
      */
-    INIT() {
-        this.flags.equal = false;
-        this.curReg = 0;
-        this.reg.fill(0, 0, 256);
+    INC() {
+        const reg = this.ram.read(this.reg.PC + 1);
 
-        this.alu('INC', 'PC'); // Next instruction
+        this.alu('INC', reg);
+
+        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
-     * SET R
+     * INT R
      */
-    SET() {
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        this.curReg = this.reg.MDR;
+    INT() {
+        const reg = this.ram.read(this.reg.PC + 1);
 
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
+        // Get interrupt number
+        const intNum = this.reg[reg];
+
+        // Unmask this interrupt number
+        this.reg[IM] |= intNum;
+
+        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
-     * SAVE I
+     * IRET
      */
-    SAVE() {
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        this.reg[this.curReg] = this.reg.MDR;
+    IRET() {
+        // Pop registers off stack
+        for (let r = 7; r >= 0; r--) {
+            this.reg[r] = this._pop();
+        }
 
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
+        // Pop the return address off the stack and put straight in PC
+        this.reg.PC = this._pop();
+
+        this.interruptsEnabled = true;
     }
 
     /**
-     * MUL R R
+     * JEQ R
      */
-    MUL() {
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const regNum0 = this.reg.MDR;
-
-        this.reg.MAR = this.reg.PC + 2;
-        this.loadMem();
-        const regNum1 = this.reg.MDR;
-
-        this.alu('MUL', regNum0, regNum1);
-
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
-        this.alu('INC', 'PC');
+    JEQ() {
+        if (this.flags.equal) {
+            // Set PC so we start executing here
+            const reg = this.ram.read(this.reg.PC + 1);
+            this.reg.PC = this.reg[reg];
+        } else {
+            this.alu('ADD', 'PC', null, 2); // Next instruction
+        }
     }
 
     /**
-     * PRN
+     * JMP R
      */
-    PRN() {
-        fs.writeSync(process.stdout.fd, this.reg[this.curReg]);
-        this.alu('INC', 'PC'); // Next instruction
+    JMP() {
+        const reg = this.ram.read(this.reg.PC + 1);
+
+        // Set PC so we start executing here
+        this.reg.PC = this.reg[reg];
     }
 
     /**
-     * PRA
+     * JNE R
      */
-    PRA() {
-        fs.writeSync(process.stdout.fd, String.fromCharCode(this.reg[this.curReg]));
-        this.alu('INC', 'PC'); // Next instruction
+    JNE() {
+        if (!this.flags.equal) {
+            // Set PC so we start executing here
+            const reg = this.ram.read(this.reg.PC + 1);
+            this.reg.PC = this.reg[reg];
+        } else {
+            this.alu('ADD', 'PC', null, 2); // Next instruction
+        }
     }
 
     /**
-     * LD M
+     * LD R,R
      */
     LD() {
-        // First get the address we want to load from
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const addr = this.reg.MDR;
+        const regA = this.ram.read(this.reg.PC + 1);
+        const regB = this.ram.read(this.reg.PC + 2);
 
-        // Then load the data from that address
-        this.reg.MAR = addr;
-        this.loadMem();
-        const value = this.reg.MDR;
+        // Read the value pointed to by regB
+        let val = this.ram.read(this.reg[regB]);
 
-        // Then store it in the register
-        this.reg[this.curReg] = value;
+        // Then store it in the regA
+        this.reg[regA] = val;
 
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
+        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
-     * ST M
+     * LDI R,I
      */
-    ST() {
-        // First get the address we want to store to
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const addr = this.reg.MDR;
+    LDI() {
+        const reg = this.ram.read(this.reg.PC + 1);
+        const val = this.ram.read(this.reg.PC + 2);
 
-        // Then store the register value at that address
-        this.reg.MAR = addr;
-        this.reg.MDR = this.reg[this.curReg];
-        this.storeMem();
+        this.reg[reg] = val;
 
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
+        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
-     * LDRI R
-     * 
-     * Load register indirect. Load the value into the current register that the
-     * given register points to.
+     * MUL R,R
      */
-    LDRI() {
-        // First, get the pointer register number
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const reg = this.reg.MDR;
+    MUL() {
+        const regA = this.ram.read(this.reg.PC + 1);
+        const regB = this.ram.read(this.reg.PC + 2);
 
-        // Get the address stored in that register
-        const addr = this.reg[reg];
+        this.alu('MUL', regA, regB);
 
-        // Load the value at that address
-        this.reg.MAR = addr;
-        this.loadMem();
-
-        // Store the result in the current register
-        this.reg[this.curReg] = this.reg.MDR;
-
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
+        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
-     * Internal push helper, doesn't move PC
+     * NOP
      */
-    _push(val) {
-        // Decrement SP, stack grows down from address 255
-        this.alu('DEC', SP);
-
-        // Store value at the current SP
-        this.reg.MAR = this.reg[SP];
-        this.reg.MDR = val;
-        this.storeMem();
-    }
-
-    /**
-     * PUSH
-     */
-    PUSH() {
-        this._push(this.reg[this.curReg]);
-
+    NOP() {
         this.alu('INC', 'PC'); // Next instruction
     }
 
@@ -479,9 +451,7 @@ class CPU {
      * Internal pop helper, doesn't move PC
      */
     _pop() {
-        this.reg.MAR = this.reg[SP];
-        this.loadMem();
-        const val = this.reg.MDR;
+        const val = this.ram.read(this.reg[SP]);
 
         // Increment SP, stack grows down from address 255
         this.alu('INC', SP);
@@ -490,87 +460,58 @@ class CPU {
     }
 
     /**
-     * POP
+     * POP R
      */
     POP() {
-        this.reg[this.curReg] = this._pop();
+        const reg = this.ram.read(this.reg.PC + 1);
 
-        this.alu('INC', 'PC'); // Next instruction
+        this.reg[reg] = this._pop();
+
+        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
-     * ADD R R
+     * PRA R
      */
-    ADD() {
-        // Load first operand
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const regNum0 = this.reg.MDR;
+    PRA() {
+        const reg = this.ram.read(this.reg.PC + 1);
 
-        // Load second operand
-        this.reg.MAR = this.reg.PC + 2;
-        this.loadMem();
-        const regNum1 = this.reg.MDR;
-        
-        this.alu('ADD', regNum0, regNum1);
+        fs.writeSync(process.stdout.fd, String.fromCharCode(this.reg[reg]));
 
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
-        this.alu('INC', 'PC');
+        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
-     * SUB R R
+     * PRN R
      */
-    SUB() {
-        // Load first operand
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const regNum0 = this.reg.MDR;
+    PRN() {
+        const reg = this.ram.read(this.reg.PC + 1);
 
-        // Load second operand
-        this.reg.MAR = this.reg.PC + 2;
-        this.loadMem();
-        const regNum1 = reg.MDR;
-        
-        this.alu('SUB', regNum0, regNum1);
+        fs.writeSync(process.stdout.fd, this.reg[reg]);
 
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
-        this.alu('INC', 'PC');
+        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
-     * DIV R R
+     * Internal push helper, doesn't move PC
      */
-    DIV() {
-        // Load first operand
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const regNum0 = this.reg.MDR;
+    _push(val) {
+        // Decrement SP, stack grows down from address 0xF7
+        this.alu('DEC', SP);
 
-        // Load second operand
-        this.reg.MAR = this.reg.PC + 2;
-        this.loadMem();
-        const regNum1 = this.reg.MDR;
-        
-        this.alu('DIV', regNum0, regNum1);
-
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
-        this.alu('INC', 'PC');
+        // Store value at the current SP
+        this.ram.write(this.reg[SP], val);
     }
 
     /**
-     * CALL
+     * PUSH R
      */
-    CALL() {
-        // Save the return address on the stack
-        this._push(this.reg.PC + 1); // +1 to make the next instruction the return address
+    PUSH() {
+        const reg = this.ram.read(this.reg.PC + 1);
 
-        // Address we're going to call to
-        const addr = this.reg[this.curReg];
-        this.reg.PC = addr;
+        this._push(this.reg[reg]);
+
+        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
@@ -582,85 +523,28 @@ class CPU {
     }
 
     /**
-     * JMP
+     * ST R,R
      */
-    JMP() {
-        this.reg.PC = this.reg[this.curReg];
+    ST() {
+        const regA = this.ram.read(this.reg.PC + 1);
+        const regB = this.ram.read(this.reg.PC + 2);
+
+        // Write val in regB to address in regA
+        this.ram.write(this.reg[regA], this.reg[regB]);
+
+        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
-     * JEQ
+     * SUB R,R
      */
-    JEQ() {
-        if (this.flags.equal) {
-            this.reg.PC = this.reg[this.curReg];
-        } else {
-            this.alu('INC', 'PC'); // Next instruction
-        }
-    }
+    SUB() {
+        const regA = this.ram.read(this.reg.PC + 1);
+        const regB = this.ram.read(this.reg.PC + 2);
 
-    /**
-     * JNE
-     */
-    JNE() {
-        if (!this.flags.equal) {
-            this.reg.PC = this.reg[this.curReg];
-        } else {
-            this.alu('INC', 'PC'); // Next instruction
-        }
-    }
+        this.alu('SUB', regA, regB);
 
-    /**
-     * CMP
-     */
-    CMP() {
-        // Load register number to compare
-        this.reg.MAR = this.reg.PC + 1;
-        this.loadMem();
-        const regNum = this.reg.MDR;
-
-        this.alu('CMP', this.curReg, regNum);
-
-        this.alu('INC', 'PC'); // Next instruction
-        this.alu('INC', 'PC');
-    }
-
-    /**
-     * INC
-     */
-    INC() {
-        this.alu('INC', this.curReg);
-        this.alu('INC', 'PC'); // Next instruction
-    }
-
-    /**
-     * DEC
-     */
-    DEC() {
-        this.alu('DEC', this.curReg);
-        this.alu('INC', 'PC'); // Next instruction
-    }
-
-    /**
-     * INT
-     */
-    INT() {
-        // Get interrupt number from current register
-        const intNum = this.reg[this.reg.curReg];
-
-        // Unmask this interrupt number
-        this.reg[IM] |= intNum;
-
-        this.alu('INC', 'PC'); // Next instruction
-    }
-
-    /**
-     * IRET
-     */
-    IRET() {
-        // Pop the return address off the stack and put straight in PC
-        this.reg.PC = this._pop();
-        this.interruptsEnabled = true;
+        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 }
 

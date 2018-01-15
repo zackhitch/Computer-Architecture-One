@@ -1,10 +1,7 @@
-const HALT = 0b00000000; // Halt CPU
-const INIT = 0b00000001; // Initialize CPU registers to zero
-const SET  = 0b00000010; // SET R(egister)
-const SAVE = 0b00000100; // SAVE I(mmediate)
-const MUL  = 0b00000101; // MUL R R
+const LDI  = 0b00000100; // LDI R,I
+const MUL  = 0b00000101; // MUL R,R
 const PRN  = 0b00000110; // Print numeric
-const PRA  = 0b00000111; // Print alpha char
+const HALT = 0b00011011; // Halt CPU
 
 function debug(s) {
     //console.log(s);
@@ -14,8 +11,8 @@ class CPU {
     constructor(ram) {
         this.ram = ram;
 
-        this.curReg = 0;
-        this.reg = new Array(256);
+        // Registers R0-R7
+        this.reg = new Array(8);
         this.reg.fill(0);
 
         this.reg.PC = 0;
@@ -28,12 +25,10 @@ class CPU {
      */
     buildBranchTable() {
         this.branchTable = {
-            [INIT]: this.INIT,
-            [SET]: this.SET,
-            [SAVE]: this.SAVE,
+            [HALT]: this.HALT,
+            [LDI]: this.LDI,
             [MUL]: this.MUL,
             [PRN]: this.PRN,
-            [HALT]: this.HALT,
         };
     }
 
@@ -77,67 +72,48 @@ class CPU {
     }
 
     /**
-     * Handle INIT
+     * Handle HALT
      */
-    INIT() {
-        debug("INIT");
-        this.curReg = 0;
-
-        this.reg.PC++; // go to next instruction
+    HALT() {
+        this.stopClock();
     }
 
     /**
-     * Handle SET
+     * Handle LDI R,I
      */
-    SET() {
+    LDI() {
         const reg = this.ram.read(this.reg.PC + 1);
-        debug("SET " + reg);
+        const val = this.ram.read(this.reg.PC + 2);
+        debug(`LDI ${reg} ${val}`);
 
-        this.curReg = reg;
+        // Store the value in the current register
+        this.reg[reg] = val;
 
-        this.reg.PC += 2;  // go to next instruction
+        this.reg.PC += 3;  // go to next instruction
     }
 
     /**
-     * Handle MUL
+     * Handle MUL R,R
      */
     MUL() {
         const regA = this.ram.read(this.reg.PC + 1);
         const regB = this.ram.read(this.reg.PC + 2);
         debug(`MUL ${regA} ${regB}`);
 
-        this.reg[this.curReg] = this.reg[regA] * this.reg[regB];
+        this.reg[regA] = this.reg[regA] * this.reg[regB];
 
         this.reg.PC += 3;  // go to next instruction
     }
 
     /**
-     * Handle SAVE
-     */
-    SAVE() {
-        const val = this.ram.read(this.reg.PC + 1);
-        debug("SAVE " + val);
-
-        // Store the value in the current register
-        this.reg[this.curReg] = val;
-
-        this.reg.PC += 2;  // go to next instruction
-    }
-
-    /**
-     * Handle PRN, print numeric
+     * Handle PRN R, print numeric
      */
     PRN() {
-        console.log(this.reg[this.curReg]);
+        const reg = this.ram.read(this.reg.PC + 1);
 
-        this.reg.PC++;
-    }
+        console.log(this.reg[reg]);
 
-    /**
-     * Handle HALT
-     */
-    HALT() {
-        this.stopClock();
+        this.reg.PC += 2; // go to next instruction
     }
 }
 

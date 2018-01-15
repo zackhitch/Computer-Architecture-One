@@ -4,24 +4,18 @@ Run with: node ls8 mult.ls8
 
 # mult.ls8
 
-00000001 # initialize
-00000010 # SET current register
-00000000 # register R0
-00000100 # SAVE next
-00001000 # 8
-00000010 # SET current register
-00000001 # register R1
-00000100 # SAVE next
-00001001 # 9
-00000010 # SET current register
-00000010 # register R2
-00000101 # MUL into current register
-00000000 # register R0
-00000001 # register R1  (we've computed R2 = R0 * R1)
-00000010 # SET current register
-00000010 # register R2
-00000110 # PRN (print numeric) (should print 72)
-00000000 # HALT
+00000100 # LDI R0,8
+00000000
+00001000
+00000100 # LDI R1,9
+00000001
+00001001
+00000101 # MUL R0,R1
+00000000
+00000001
+00000110 # PRN R0
+00000000
+00011011 # HLT
 */
 
 const fs = require('fs');

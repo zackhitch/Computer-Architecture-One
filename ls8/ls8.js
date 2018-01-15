@@ -1,4 +1,5 @@
 const fs = require('fs');
+const RAM = require('./ram');
 const CPU = require('./cpu');
 
 /**
@@ -87,7 +88,8 @@ function onFileLoaded(cpu) {
  * Main
  */
 
-let cpu = new CPU();
+let ram = new RAM(256);
+let cpu = new CPU(ram);
 
 // Get remaining command line arguments
 const argv = process.argv.slice(2);
