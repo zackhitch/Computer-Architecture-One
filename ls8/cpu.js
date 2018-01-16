@@ -64,7 +64,7 @@ class CPU {
             interruptsEnabled: true
         };
 
-        this.reg = new Array(8); // General-purpose registers
+        this.reg = new Array(8).fill(0); // General-purpose registers
         
         this.reg[IM] = 0; // All interrupts masked
         this.reg[IS] = 0; // No interrupts active
@@ -73,8 +73,6 @@ class CPU {
         // Special-purpose registers
         this.reg.PC  = 0; // Program Counter
         this.reg.IR  = 0; // Instruction Register
-        this.reg.MAR = 0; // Memory Address Register
-        this.reg.MDR = 0; // Memory Data Register
 
 		this.setupBranchTable();
     }
