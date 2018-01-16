@@ -35,9 +35,17 @@ const IM = 0x05;  // Interrupt mask register R5
 const IS = 0x06;  // Interrupt status register R6
 const SP = 0x07;  // Stack pointer R7
 
-// Interrupt numbers
-const INT_TIMER_MASK = (0x1 << 0); // Timer interrupt
-const INT_KEY_MASK   = (0x1 << 1); // Keyboard interrupt
+// Interrupt mask bits
+const intMask = [
+    (0x1 << 0), // timer
+    (0x1 << 1), // reserved
+    (0x1 << 2), // reserved
+    (0x1 << 3), // reserved
+    (0x1 << 4), // reserved
+    (0x1 << 5), // reserved
+    (0x1 << 6), // reserved
+    (0x1 << 7), // reserved
+];
 
 /**
  * Class for simulating a simple Computer (CPU & memory)
@@ -123,7 +131,7 @@ class CPU {
 
         this.timerInterrupt = setInterval(() => {
             // Set the timer bit in the IS register
-            _this.reg[IS] |= INT_TIMER_MASK;
+            _this.reg[IS] |= intMask[0]; // Timer
         }, 1000);
     }
 
@@ -208,7 +216,7 @@ class CPU {
                     this.flags.interruptsEnabled = false;
 
                     // Clear this interrupt in the status register
-                    this.reg[IS] &= ~i;
+                    this.reg[IS] &= ~intMask[i];
 
                     // Push return address
                     this._push(this.reg.PC);
@@ -361,7 +369,7 @@ class CPU {
         // Pop the return address off the stack and put straight in PC
         this.reg.PC = this._pop();
 
-        this.interruptsEnabled = true;
+        this.flags.interruptsEnabled = true;
     }
 
     /**
