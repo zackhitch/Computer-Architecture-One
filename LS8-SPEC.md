@@ -74,7 +74,7 @@ If a bit is set:
 
 1. Disable further interrupts.
 2. Clear the bit in the IS register.
-3. The address of the next instruction is pushed on the stack.
+3. The PC is pushed on the stack.
 4. Registers R0-R7 are pushed on the stack in that order.
 5. The address (_vector_ in interrupt terminology) of the appropriate
    handler is looked up from the interrupt vector table.
@@ -88,8 +88,7 @@ See `IRET`, below, for returning from an interrupt.
 
 ### Interrupt numbers
 
-* 0: Timer interrupt
-* 1: Keyboard interrupt
+* 0: Timer interrupt. This interrupt triggers once per second.
 
 
 ## Instruction Set
@@ -212,8 +211,8 @@ Return from an interrupt handler.
 
 The following steps are executed:
 
-1. Registers R7-R0 are popped off the stack in that order.
-2. The return address is popped off the stack and stored in PC.
+1. The return address is popped off the stack and stored in PC.
+2. Registers R7-R0 are popped off the stack in that order.
 3. Interrupts are re-enabled
 
 Machine code:
