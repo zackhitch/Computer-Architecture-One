@@ -211,8 +211,8 @@ Return from an interrupt handler.
 
 The following steps are executed:
 
-1. The return address is popped off the stack and stored in PC.
-2. Registers R7-R0 are popped off the stack in that order.
+1. Registers R7-R0 are popped off the stack in that order.
+2. The return address is popped off the stack and stored in PC.
 3. Interrupts are re-enabled
 
 Machine code:
