@@ -73,7 +73,7 @@ console.log(myValue2); // 5
     1010
 
 The above example has one 8, zero 4s, one 2, and zero 1s. That is, it has one 8
-and one 2. One 8 and one 2 is 10, `8+2=10`
+and one 2. One 8 and one 2 is 10, `8+2=10`, so:
 
 `1010` binary == `10` decimal.
 

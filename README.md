@@ -27,17 +27,19 @@ in JS. Then we'll write code that loads a file of machine code
 instructions from disk, parses the file, and loads it into memory. After
 that, we'll start the emulator running and see it execute instructions!
 
-For starters, we'll execute code that initializes the CPU, and then
-stores the value 8 in a register.
+For starters, we'll execute code that stores the value 8 in a register,
+then prints it out:
 
-    # init-and-load.ls8
+```
+# print8.ls8
 
-    00000001 # INIT
-    00000010 # SET current register
-    00000000 # register R0
-    00000100 # SAVE next
-    00001000 # 8
-    00000000 # HALT
+00000100 # LDI R0,8
+00000000
+00001000
+00000110 # PRN R0
+00000000
+00011011 # HALT
+```
 
 The value on the left is the machine code value of the instruction
 (_opcode_) or its immediate argument(s) (the _operands_).
@@ -54,26 +56,23 @@ instructions referenced below.
 
 Extend your LS8 emulator to support the following program:
 
-    # mult.ls8
 
-    00000001 # INIT
-    00000010 # SET current register
-    00000000 # register R0
-    00000100 # SAVE next
-    00001000 # 8
-    00000010 # SET current register
-    00000001 # register R1
-    00000100 # SAVE next
-    00001001 # 9
-    00000010 # SET current register
-    00000010 # register R2
-    00000101 # MUL into current register
-    00000000 # register R0
-    00000001 # register R1  (we've computed R2 = R0 * R1)
-    00000010 # SET current register
-    00000010 # register R2
-    00000110 # PRN (print numeric) (should print 72)
-    00000000 # HALT
+```
+# mult.ls8
+
+00000100 # LDI R0,8
+00000000
+00001000
+00000100 # LDI R1,9
+00000001
+00001001
+00000101 # MUL R0,R1
+00000000
+00000001
+00000110 # PRN R0, should print 72
+00000000
+00011011 # HALT
+```
 
 Your goal is to write a simple CPU that supports the above instructions. You
 will need to read the file (as an argument or a stream) via NodeJS into an array
@@ -91,38 +90,44 @@ registers together and store the result in the current register) and PRN
 
 Supported instructions:
 
-    SET    Set the address of the next byte to be the active register
+```
+LDI    Load Immediate. This loads a numeric value into a register
 
-    SAVE   Save the value of the next byte into the active register
+MUL    Multiply the values in two registers together, and store the
+       result in the first register
 
-    MUL    Multiply the values stored in the registers identified by the next
-           two bytes, saving them into the currently SET register
+PRN    Print Numeric--console.log the integer value of the active register
 
-    PRN    Print Numeric--console.log the integer value of the active register
-
-    HALT   Stop the CPU (and exit the emulator)
+HALT   Stop the CPU (and exit the emulator)
+```
 
 The following command line input:
 
-    node ls8 mult.ls8
+```
+node ls8 mult.ls8
+```
 
 Should produce
 
-    72
+```
+72
+```
 
 through the process of executing the machine code in the input file.
 
 
-### Implement System Stack
+### (Stretch Goal 1) Implement System Stack
 
 All CPUs manage a _stack_ that can be used to store information
 temporarily. This stack resides in main memory and typically starts at
 the top of memory (at a high address) and grows _downward_ as things are
 pushed on. The LS-8 is no exception to this.
 
-* Implement a system stack per the spec. Add `PUSH` and `POP` instructions.
+* Implement a system stack per the spec. Add `PUSH` and `POP`
+  instructions. Read the beginning of the spec to see which register is
+  the stack pointer, and where the stack starts in memory.
 
-### Implement Subroutine Calls
+### (Stretch Goal 2) Implement Subroutine Calls
 
 Back the my day, functions were called _subroutines_. In machine code,
 this enables you to jump to an address with the `CALL` instruction, and
