@@ -142,7 +142,7 @@ rl.on('line', (input) => {
     if (label) {
       sym[label] = addr;
       //console.log("Label " + label + ": " + addr);
-      code.push(`# ${label}:`);
+      code.push(`# ${label} (${addr}):`);
     }
 
     if (opcode !== undefined) {
