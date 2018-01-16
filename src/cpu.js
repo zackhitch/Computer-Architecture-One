@@ -102,9 +102,9 @@ class CPU {
         // Check that the handler is defined, halt if not (invalid
         // instruction)
 
-		// We need to use call() so we can set the "this" value inside
-		// the handler (otherwise it will be undefined in the handler)
-		handler.call(this);
+        // We need to use call() so we can set the "this" value inside
+        // the handler (otherwise it will be undefined in the handler)
+        handler.call(this);
     }
 
     // INSTRUCTION HANDLER CODE:
