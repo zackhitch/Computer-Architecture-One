@@ -120,7 +120,9 @@ Machine code:
 
 Calls a subroutine (function) at the address stored in the register.
 
-Before the call is made, the address of the _next_ instruction that will execute is pushed onto the stack.
+1. The address of the _next_ instruction that will execute is pushed onto the
+   stack.
+2. The PC is set to the address stored in the given register.
 
 Machine code:
 ```
