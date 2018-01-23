@@ -308,6 +308,9 @@ Machine code:
 
 Pop the value at the top of the stack into the given register.
 
+1. Copy the value from the address pointed to by SP to the given register.
+2. Increment SP.
+
 Machine code:
 ```
 00001011 00000rrr
@@ -340,6 +343,10 @@ Machine code:
 `PUSH register`
 
 Push the given register on the stack.
+
+1. Decrement the SP.
+2. Copy the value in the given register to the address pointed to by
+   SP.
 
 Machine code:
 ```
