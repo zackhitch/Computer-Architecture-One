@@ -6,29 +6,35 @@ const fs = require('fs');
 
 // Instructions
 
-const ADD  = 0b00001100; // ADD R R
-const CALL = 0b00001111; // Call R
-const CMP  = 0b00010110; // CMP R
-const DEC  = 0b00011000; // DEC R
-const DIV  = 0b00001110; // DIV R R
-const HLT  = 0b00011011; // Halt CPU
-const INC  = 0b00010111; // INC R
-const INT  = 0b00011001; // Software interrupt R
-const IRET = 0b00011010; // Return from interrupt
-const JEQ  = 0b00010011; // JEQ R
-const JMP  = 0b00010001; // JMP R
-const JNE  = 0b00010100; // JNE R
-const LD   = 0b00010010; // Load R,R
-const LDI  = 0b00000100; // LDI R,I(mmediate)
-const MUL  = 0b00000101; // MUL R,R
+const ADD  = 0b10101000; // ADD R R
+const AND  = 0b10110011; // AND R R
+const CALL = 0b01001000; // CALL R
+const CMP  = 0b10100000; // CMP R R
+const DEC  = 0b01111001; // DEC R
+const DIV  = 0b10101011; // DIV R R
+const HLT  = 0b00000001; // Halt CPU
+const INC  = 0b01111000; // INC R
+const INT  = 0b01001010; // Software interrupt R
+const IRET = 0b00001011; // Return from interrupt
+const JEQ  = 0b01010001; // JEQ R
+const JGT  = 0b01010100; // JGT R
+const JLT  = 0b01010011; // JGT R
+const JMP  = 0b01010000; // JMP R
+const JNE  = 0b01010010; // JNE R
+const LD   = 0b10011000; // Load R,R
+const LDI  = 0b10011001; // LDI R,I(mmediate)
+const MUL  = 0b10101010; // MUL R,R
 const NOP  = 0b00000000; // NOP
-const POP  = 0b00001011; // Pop R
-const PRA  = 0b00000111; // Print alpha char
-const PRN  = 0b00000110; // Print numeric
-const PUSH = 0b00001010; // Push R
-const RET  = 0b00010000; // Return
-const ST   = 0b00001001; // Store R,R
-const SUB  = 0b00001101; // SUB R R
+const NOT  = 0b01110000; // NOT R
+const OR   = 0b10110001; // OR R R
+const POP  = 0b01001100; // Pop R
+const PRA  = 0b01000010; // Print alpha char
+const PRN  = 0b01000011; // Print numeric register
+const PUSH = 0b01001101; // Push R
+const RET  = 0b00001001; // Return
+const ST   = 0b10011010; // Store R,R
+const SUB  = 0b10101001; // SUB R R
+const XOR  = 0b10110010; // XOR R R
 
 // System-utilized general purpose registers
 const IM = 0x05;  // Interrupt mask register R5
