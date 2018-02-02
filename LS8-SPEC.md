@@ -1,4 +1,4 @@
-# LS-8 Microcomputer Spec v2.0
+# LS-8 Microcomputer Spec v3.0
 
 ## Registers
 
@@ -8,6 +8,10 @@
 * R6 is reserved as the interrupt status (IS)
 * R7 is reserved as the stack pointer (SP)
 
+> These registers only hold values between 0-255. After performing math on
+> registers in the emulator, bitwise-AND the result with 0xFF (255) to keep the
+> register values in that range.
+
 
 ## Internal Registers
 
@@ -15,11 +19,24 @@
 * `IR`: Instruction Register, contains a copy of the currently executing instruction
 * `MAR`: Memory Address Register, holds the memory address we're reading or writing
 * `MDR`: Memory Data Register, holds the value to write or the value just read
+* `FL`: Flags, see below
 
 
 ## Flags
 
-* `equal`: Flag is set (true) if latest `CMP` was equal
+The flags register `FL` holds the current flags status. These flags
+can change based on the operands given to the `CMP` opcode.
+
+The register is made up of 8 bits. If a particular bit is set, that flag is "true".
+
+`FL` bits: `00000LGE`
+
+* `L` Less-than: during a `CMP`, set to 1 if registerA is less than registerB,
+  zero otherwise.
+* `G` Greater-than: during a `CMP`, set to 1 if registerA is greater than
+  registerB, zero otherwise.
+* `E` Equal: during a `CMP`, set to 1 if registerA is equal to registerB, zero
+  otherwise.
 
 
 ## Memory
@@ -39,10 +56,12 @@ Memory map:
 | FA  I2 vector         |
 | F9  I1 vector         |
 | F8  I0 vector         |
-| F7  Top of Stack      |    Stack grows down
-|                       |
+| F7  Reserved          |
+| F6  Reserved          |
+| F5  Reserved          |
+| F4  Key pressed       |    Holds the most recent key pressed on the keyboard
+| F3  Top of Stack      |    Stack grows down
 | ...                   |
-|                       |
 | 00 Program entry      |    Program loaded upward in memory starting at 0
 +-----------------------+
     bottom of RAM
@@ -50,7 +69,7 @@ Memory map:
 
 ## Stack
 
-The SP points at the value at the top of the stack, or at address `F8`
+The SP points at the value at the top of the stack, or at address `F3`
 if the stack is empty.
 
 
@@ -74,11 +93,12 @@ If a bit is set:
 
 1. Disable further interrupts.
 2. Clear the bit in the IS register.
-3. The PC is pushed on the stack.
-4. Registers R0-R7 are pushed on the stack in that order.
-5. The address (_vector_ in interrupt terminology) of the appropriate
+3. The `PC` register is pushed on the stack.
+4. The `FL` register is pushed on the stack.
+5. Registers R0-R6 are pushed on the stack in that order.
+6. The address (_vector_ in interrupt terminology) of the appropriate
    handler is looked up from the interrupt vector table.
-6. Set the PC is set to the handler address.
+7. Set the PC is set to the handler address.
 
 While an interrupt is being serviced (between the handler being called
 and the `IRET`), further interrupts are disabled.
@@ -89,6 +109,24 @@ See `IRET`, below, for returning from an interrupt.
 ### Interrupt numbers
 
 * 0: Timer interrupt. This interrupt triggers once per second.
+* 1: Keyboard interrupt. This interrupt triggers when a key is pressed.
+  The value of the key pressed is stored in address `0xF4`.
+
+## Instruction Layout
+
+Meanings of the bits in the first byte of each instruction: `AABCCDDD`
+
+`AA` Number of operands for this opcode, 0-2
+`B` 1 if this is an ALU operation
+`CC` Category, 0-3
+`DDD` Instruction, 0-7
+
+The number of operands `AA` is useful to know because the total number of bytes in any
+instruction is the number of operands + 1 (for the opcode). This
+allows you to know how far to advance the `PC` with each instruction.
+
+It might also be useful to check the other bits in an emulator implemention, but
+there are other ways to code it that don't do these checks.
 
 
 ## Instruction Set
@@ -111,7 +149,19 @@ Add two registers and store the result in registerA.
 
 Machine code:
 ```
-00001100 00000aaa 00000bbb
+10101000 00000aaa 00000bbb
+```
+
+### AND
+
+`AND registerA registerB`
+
+Bitwise-AND registerA and registerB, then store the result in
+registerA.
+
+Machine code:
+```
+10110011 00000aaa 00000bbb
 ```
 
 ### CALL register
@@ -126,7 +176,7 @@ Calls a subroutine (function) at the address stored in the register.
 
 Machine code:
 ```
-00001111 00000rrr
+01001000 00000rrr
 ```
 
 ### CMP
@@ -135,23 +185,28 @@ Machine code:
 
 Compare the value in two registers.
 
-If the are equal, set the `equal` flag to true.
-If the are not equal, set the `equal` flag to false.
+* If they are equal, set the Equal `E` flag to 1, otherwise set it to 0.
+
+* If registerA is less than registerB, set the Less-than `T` flag to 1,
+  otherwise set it to 0.
+
+* If registerA is greater than registerB, set the Greater-than `T` flag
+  to 1, otherwise set it to 0.
 
 Machine code:
 ```
-00010110 00000aaa 00000bbb
+10100000 00000aaa 00000bbb
 ```
 
 ### DEC
 
 `DEC register`
 
-Decrement the value in the given register.
+Decrement (subtract 1 from) the value in the given register.
 
 Machine code:
 ```
-00011000 00000rrr
+01111001 00000rrr
 ```
 
 ### DIV
@@ -166,7 +221,7 @@ error message and halt.
 
 Machine code:
 ```
-0b00001110 00000aaa 00000bbb
+10101011 00000aaa 00000bbb
 ```
 
 ### HLT
@@ -177,18 +232,18 @@ Halt the CPU (and exit the emulator).
 
 Machine code:
 ```
-00011011
+00000001 
 ```
 
 ### INC
 
 `INC register`
 
-Increment the value in the given register.
+Increment (add 1 to) the value in the given register.
 
 Machine code:
 ```
-00010111 00000rrr
+01111000 00000rrr
 ```
 
 ### INT
@@ -197,12 +252,12 @@ Machine code:
 
 Issue the interrupt number stored in the given register.
 
-This will set the _n_th bit in the IS register to the value in the given
+This will set the _n_th bit in the `IS` register to the value in the given
 register.
 
 Machine code:
 ```
-00011001 00000rrr
+01001010 00000rrr
 ```
 
 ### IRET
@@ -213,25 +268,49 @@ Return from an interrupt handler.
 
 The following steps are executed:
 
-1. Registers R7-R0 are popped off the stack in that order.
-2. The return address is popped off the stack and stored in PC.
-3. Interrupts are re-enabled
+1. Registers R6-R0 are popped off the stack in that order.
+2. The `FL` register is popped off the stack.
+3. The return address is popped off the stack and stored in `PC`.
+4. Interrupts are re-enabled
 
 Machine code:
 ```
-00011010
+00001011
 ```
 
 ### JEQ
 
 `JEQ register`
 
-If `equal` flag is set (true), jump to the address stored in the given
+If `equal` flag is set (true), jump to the address stored in the given register.
+
+Machine code:
+```
+01010001 00000rrr
+```
+
+### JGT
+
+`JGT register`
+
+If `greater-than` flag is set (true), jump to the address stored in the given
 register.
 
 Machine code:
 ```
-00010011 00000rrr
+01010100 00000rrr
+```
+
+### JLT
+
+`JLT register`
+
+If `less-than` flag is set (true), jump to the address stored in the given
+register.
+
+Machine code:
+```
+01010011 00000rrr
 ```
 
 ### JMP
@@ -240,23 +319,23 @@ Machine code:
 
 Jump to the address stored in the given register.
 
-Set the PC to the address stored in the given register.
+Set the `PC` to the address stored in the given register.
 
 Machine code:
 ```
-00010001 00000rrr
+01010000 00000rrr
 ```
 
 ### JNE
 
 `JNE register`
 
-If `equal` flag is clear (false), jump to the address stored in the
-given register.
+If `E` flag is clear (false, 0), jump to the address stored in the given
+register.
 
 Machine code:
 ```
-00010100 00000rrr
+01010010 00000rrr
 ```
 
 ### LD
@@ -265,21 +344,24 @@ Machine code:
 
 Loads registerA with the value at the address stored in registerB.
 
+This opcode reads from memory.
+
 Machine code:
 ```
-00010010 00000aaa 00000bbb
+10011000 00000aaa 00000bbb
 ```
 
 ### LDI
 
 `LDI register immediate`
 
-Set the value of a register.
+Set the value of a register to an integer.
 
 Machine code:
 ```
-00000100 00000rrr iiiiiiii
+10011001 00000rrr iiiiiiii
 ```
+
 ### MUL
 
 `MUL registerA registerB`
@@ -288,7 +370,7 @@ Multiply two registers together and store the result in registerA.
 
 Machine code:
 ```
-00000101 00000aaa 00000bbb
+10101010 00000aaa 00000bbb
 ```
 
 ### NOP
@@ -302,18 +384,41 @@ Machine code:
 00000000
 ```
 
+### NOT
+
+`NOT register`
+
+Perform a bitwise-NOT on the value in a register.
+
+Machine code:
+```
+01110000 00000rrr
+```
+
+### OR
+
+`OR registerA registerB`
+
+Perform a bitwise-OR between registerA and registerB, storing the
+result in registerA.
+
+Machine code:
+```
+10110001 00000aaa 00000bbb
+```
+
 ### POP
 
 `POP register`
 
 Pop the value at the top of the stack into the given register.
 
-1. Copy the value from the address pointed to by SP to the given register.
-2. Increment SP.
+1. Copy the value from the address pointed to by `SP` to the given register.
+2. Increment `SP`.
 
 Machine code:
 ```
-00001011 00000rrr
+01001100 00000rrr
 ```
 
 ### PRA
@@ -322,9 +427,12 @@ Machine code:
 
 Print alpha character value stored in the given register.
 
+Print to the console the ASCII character corresponding to the value in the
+register.
+
 Machine code:
 ```
-00000111 00000rrr
+01000010 00000rrr
 ```
 
 ### PRN
@@ -333,9 +441,12 @@ Machine code:
 
 Print numeric value stored in the given register.
 
+Print to the console the decimal integer value that is stored in the given
+register.
+
 Machine code:
 ```
-00000110 00000rrr
+01000011 00000rrr
 ```
 
 ### PUSH
@@ -344,13 +455,13 @@ Machine code:
 
 Push the given register on the stack.
 
-1. Decrement the SP.
+1. Decrement the `SP`.
 2. Copy the value in the given register to the address pointed to by
-   SP.
+   `SP`.
 
 Machine code:
 ```
-00001010 00000rrr
+01001101 00000rrr
 ```
 
 ### RET
@@ -359,11 +470,11 @@ Machine code:
 
 Return from subroutine.
 
-Pop the value from the top of the stack and store it in the PC.
+Pop the value from the top of the stack and store it in the `PC`.
 
 Machine Code:
 ```
-00010000
+00001001
 ```
 
 ### ST
@@ -372,9 +483,11 @@ Machine Code:
 
 Store value in registerB in the address stored in registerA.
 
+This opcode writes to memory.
+
 Machine code:
 ```
-00001001 00000aaa 00000bbb
+10011010 00000aaa 00000bbb
 ```
 
 ### SUB
@@ -386,5 +499,17 @@ result in registerA.
 
 Machine code:
 ```
-00001101 00000aaa 00000bbb
+10101001 00000aaa 00000bbb
+```
+
+### XOR
+
+`XOR registerA registerB`
+
+Perform a bitwise-XOR between registerA and registerB, storing the
+result in registerA.
+
+Machine code:
+```
+10110010 00000aaa 00000bbb
 ```
