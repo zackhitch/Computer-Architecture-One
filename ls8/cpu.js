@@ -18,7 +18,7 @@ const INT  = 0b01001010; // Software interrupt R
 const IRET = 0b00001011; // Return from interrupt
 const JEQ  = 0b01010001; // JEQ R
 const JGT  = 0b01010100; // JGT R
-const JLT  = 0b01010011; // JGT R
+const JLT  = 0b01010011; // JLT R
 const JMP  = 0b01010000; // JMP R
 const JNE  = 0b01010010; // JNE R
 const LD   = 0b10011000; // Load R,R
@@ -115,31 +115,42 @@ class CPU {
 	 * Sets up the branch table
 	 */
 	setupBranchTable() {
-		let bt = {};
-
-		bt[ADD] = this.ADD;
+        let bt = {};
+        
+		bt[ADD]  = this.ADD;
+		bt[AND]  = this.AND;
 		bt[CALL] = this.CALL;
-		bt[CMP] = this.CMP;
-		bt[DEC] = this.DEC;
-		bt[DIV] = this.DIV;
-		bt[HLT] = this.HLT;
-		bt[INC] = this.INC;
-		bt[INT] = this.INT;
+		bt[CMP]  = this.CMP;
+		bt[DEC]  = this.DEC;
+		bt[DIV]  = this.DIV;
+		bt[HLT]  = this.HLT;
+		bt[INC]  = this.INC;
+		bt[INT]  = this.INT;
 		bt[IRET] = this.IRET;
-		bt[JEQ] = this.JEQ;
-		bt[JMP] = this.JMP;
-		bt[JNE] = this.JNE;
-		bt[LD] = this.LD;
-		bt[LDI] = this.LDI;
-		bt[MUL] = this.MUL;
-		bt[NOP] = this.NOP;
-		bt[POP] = this.POP;
-		bt[PRA] = this.PRA;
-		bt[PRN] = this.PRN;
+		bt[JEQ]  = this.JEQ;
+		bt[JGT]  = this.JGT;
+		bt[JLT]  = this.JLT;
+		bt[JMP]  = this.JMP;
+		bt[JNE]  = this.JNE;
+		bt[LD]   = this.LD;
+		bt[LDI]  = this.LDI;
+		bt[MUL]  = this.MUL;
+        bt[NOP]  = this.NOP;
+        bt[NOT]  = this.NOT;
+        bt[OR]   = this.OR;
+		bt[POP]  = this.POP;
+		bt[PRA]  = this.PRA;
+		bt[PRN]  = this.PRN;
 		bt[PUSH] = this.PUSH;
-		bt[RET] = this.RET;
-		bt[ST] = this.ST;
-		bt[SUB] = this.SUB;
+		bt[RET]  = this.RET;
+		bt[ST]   = this.ST;
+		bt[SUB]  = this.SUB;
+		bt[XOR]  = this.XOR;
+
+        // Bind all the functions to this so we can call them later
+        for (let k of Object.keys(bt)) {
+            bt[k] = bt[k].bind(this);
+        }
 
 		this.branchTable = bt;
 	}
@@ -185,13 +196,31 @@ class CPU {
         valA = this.reg[regA];
 
         // Load valB from regB or immediate
-        if (regB !== null && regB !== undefined) {
-            valB = this.reg[regB];
+        if (immediate === undefined) {
+            if (regB !== undefined) {
+                valB = this.reg[regB];
+            }
         } else {
             valB = immediate;
         }
 
         switch (op) {
+            case 'AND':
+                this.reg[regA] = valA & valB;
+                break;
+
+            case 'OR':
+                this.reg[regA] = valA | valB;
+                break;
+
+            case 'NOT':
+                this.reg[regA] = ~valA;
+                break;
+
+            case 'XOR':
+                this.reg[regA] = valA ^ valB;
+                break;
+
             case 'MUL':
                 this.reg[regA] = (valA * valB) & 255;
                 break;
@@ -291,9 +320,30 @@ class CPU {
 			return;
 		}
 
-		// We need to use call() so we can set the "this" value inside
-		// the handler (otherwise it will be undefined in the handler)
-		handler.call(this);
+        // Read in the two next bytes just in case they are needed by the handler
+        const operandA = this.ram.read((this.reg.PC + 1) & 0xff);
+        const operandB = this.ram.read((this.reg.PC + 2) & 0xff);
+
+		// We need to use call() so we can set the "this" value inside the
+		// handler (otherwise it will be undefined in the handler).
+		//
+		// The handler _may_ return a new PC if it wants to set it explicitly.
+		// E.g. CALL, JMP and variants, IRET, and RET all set the PC to a new
+		// destination.
+
+        const newPC = handler(operandA, operandB);
+        
+        if (newPC === undefined) {
+            // Move the PC to the next instruction.
+            // First get the instruction size, then add to PC
+            const operandCount = (this.reg.IR >> 6) & 0b11; // 
+            const instSize = operandCount + 1;
+
+            this.alu('ADD', 'PC', null, instSize); // Next instruction
+        } else {
+            // Handler wants the PC set to exactly this
+            this.reg.PC = newPC;
+        }
     }
 
     // INSTRUCTION HANDLER CODE:
@@ -301,45 +351,35 @@ class CPU {
     /**
      * ADD R,R
      */
-    ADD() {
-        const regA = this.ram.read(this.reg.PC + 1);
-        const regB = this.ram.read(this.reg.PC + 2);
-
+    ADD(regA, regB) {
         this.alu('ADD', regA, regB);
+    }
 
-        this.alu('ADD', 'PC', null, 3); // Next instruction
+    /**
+     * AND R,R
+     */
+    AND(regA, regB) {
+        this.alu('AND', regA, regB);
     }
 
     /**
      * CMP R R
      */
-    CMP() {
-        const regA = this.ram.read(this.reg.PC + 1);
-        const regB = this.ram.read(this.reg.PC + 2);
-
+    CMP(regA, regB) {
         this.alu('CMP', regA, regB);
-
-        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
      * DIV R,R
      */
-    DIV() {
-        const regA = this.ram.read(this.reg.PC + 1);
-        const regB = this.ram.read(this.reg.PC + 2);
-
+    DIV(regA, regB) {
         this.alu('DIV', regA, regB);
-
-        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
      * CALL R
      */
-    CALL() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    CALL(reg) {
         // Save the return address on the stack
         this._push(this.reg.PC + 2); // +2 to make the next instruction the return address
 
@@ -347,18 +387,14 @@ class CPU {
         const addr = this.reg[reg];
          
         // Set PC so we start executing here
-        this.reg.PC = addr;
+        return addr;
     }
 
     /**
-     * DEC
+     * DEC R
      */
-    DEC() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    DEC(reg) {
         this.alu('DEC', reg);
-
-        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
@@ -371,27 +407,19 @@ class CPU {
     /**
      * INC R
      */
-    INC() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    INC(reg) {
         this.alu('INC', reg);
-
-        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
      * INT R
      */
-    INT() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    INT(reg) {
         // Get interrupt number
         const intNum = this.reg[reg];
 
         // Unmask this interrupt number
         this.reg[IM] |= intNum;
-
-        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
@@ -407,92 +435,105 @@ class CPU {
         this.reg.FL = this._pop();
 
         // Pop the return address off the stack and put straight in PC
-        this.reg.PC = this._pop();
+        const nextPC = this._pop();
 
         this.interruptsEnabled = true;
+
+        return nextPC;
     }
 
     /**
      * JEQ R
      */
-    JEQ() {
+    JEQ(reg) {
         if (this.getFlag(FLAG_EQ)) {
             // Set PC so we start executing here
-            const reg = this.ram.read(this.reg.PC + 1);
-            this.reg.PC = this.reg[reg];
-        } else {
-            this.alu('ADD', 'PC', null, 2); // Next instruction
+            return this.reg[reg];
+        }
+    }
+
+    /**
+     * JGT R
+     */
+    JGT(reg) {
+        if (this.getFlag(FLAG_GT)) {
+            // Set PC so we start executing here
+            return this.reg[reg];
+        }
+    }
+
+    /**
+     * JLT R
+     */
+    JLT(reg) {
+        if (this.getFlag(FLAG_LT)) {
+            // Set PC so we start executing here
+            return this.reg[reg];
         }
     }
 
     /**
      * JMP R
      */
-    JMP() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    JMP(reg) {
         // Set PC so we start executing here
-        this.reg.PC = this.reg[reg];
+        return this.reg[reg];
     }
 
     /**
      * JNE R
      */
-    JNE() {
+    JNE(reg) {
         if (!this.getFlag(FLAG_EQ)) {
             // Set PC so we start executing here
-            const reg = this.ram.read(this.reg.PC + 1);
-            this.reg.PC = this.reg[reg];
-        } else {
-            this.alu('ADD', 'PC', null, 2); // Next instruction
+            return this.reg[reg];
         }
     }
 
     /**
      * LD R,R
      */
-    LD() {
-        const regA = this.ram.read(this.reg.PC + 1);
-        const regB = this.ram.read(this.reg.PC + 2);
-
+    LD(regA, regB) {
         // Read the value pointed to by regB
         let val = this.ram.read(this.reg[regB]);
 
         // Then store it in the regA
         this.reg[regA] = val;
-
-        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
      * LDI R,I
      */
-    LDI() {
-        const reg = this.ram.read(this.reg.PC + 1);
-        const val = this.ram.read(this.reg.PC + 2);
-
+    LDI(reg, val) {
         this.reg[reg] = val;
-
-        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
      * MUL R,R
      */
-    MUL() {
-        const regA = this.ram.read(this.reg.PC + 1);
-        const regB = this.ram.read(this.reg.PC + 2);
-
+    MUL(regA, regB) {
         this.alu('MUL', regA, regB);
-
-        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
      * NOP
      */
     NOP() {
-        this.alu('INC', 'PC'); // Next instruction
+        // No operation; does nothing.
+    }
+
+    /**
+     * NOT R
+     */
+    NOT(reg) {
+        this.alu('NOT', reg);
+    }
+
+    /**
+     * OR R,R
+     */
+    OR(regA, regB) {
+        this.alu('OR', regA, regB);
     }
 
     /**
@@ -510,34 +551,22 @@ class CPU {
     /**
      * POP R
      */
-    POP() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    POP(reg) {
         this.reg[reg] = this._pop();
-
-        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
      * PRA R
      */
-    PRA() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    PRA(reg) {
         fs.writeSync(process.stdout.fd, String.fromCharCode(this.reg[reg]));
-
-        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
      * PRN R
      */
-    PRN() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    PRN(reg) {
         fs.writeSync(process.stdout.fd, this.reg[reg]);
-
-        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
@@ -554,12 +583,8 @@ class CPU {
     /**
      * PUSH R
      */
-    PUSH() {
-        const reg = this.ram.read(this.reg.PC + 1);
-
+    PUSH(reg) {
         this._push(this.reg[reg]);
-
-        this.alu('ADD', 'PC', null, 2); // Next instruction
     }
 
     /**
@@ -567,32 +592,31 @@ class CPU {
      */
     RET() {
         // Pop the return address off the stack and put straight in PC
-        this.reg.PC = this._pop();
+        const nextPC = this._pop();
+
+        return nextPC;
     }
 
     /**
      * ST R,R
      */
-    ST() {
-        const regA = this.ram.read(this.reg.PC + 1);
-        const regB = this.ram.read(this.reg.PC + 2);
-
+    ST(regA, regB) {
         // Write val in regB to address in regA
         this.ram.write(this.reg[regA], this.reg[regB]);
-
-        this.alu('ADD', 'PC', null, 3); // Next instruction
     }
 
     /**
      * SUB R,R
      */
-    SUB() {
-        const regA = this.ram.read(this.reg.PC + 1);
-        const regB = this.ram.read(this.reg.PC + 2);
-
+    SUB(regA, regB) {
         this.alu('SUB', regA, regB);
+    }
 
-        this.alu('ADD', 'PC', null, 3); // Next instruction
+    /**
+     * XOR R,R
+     */
+    XOR(regA, regB) {
+        this.alu('XOR', regA, regB);
     }
 }
 
