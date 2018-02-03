@@ -82,7 +82,10 @@ class CPU {
 
     this.interruptsEnabled = true;
 
-  this.setupBranchTable();
+    // Peripherals e.g. keyboards attach to this list
+    this.peripherals = [];
+
+    this.setupBranchTable();
   }
   
   /**
@@ -163,15 +166,24 @@ class CPU {
   }
 
   /**
+   * Adds a peripheral to the CPU
+   */
+  addPeripheral(p) {
+    this.peripherals.push(p);
+  }
+
+  /**
    * Starts the clock ticking on the CPU
    */
   startClock() {
     const _this = this;
 
+    // Set up the main clock
     this.clock = setInterval(() => {
       _this.tick();
     }, 1);
 
+    // Set up the timer interrupt
     this.timerInterrupt = setInterval(() => {
       // Set the timer bit in the IS register
       _this.reg[IS] |= intMask[0]; // Timer
@@ -182,8 +194,16 @@ class CPU {
    * Stops the clock
    */
   stopClock() {
+    // Stop the main clock
     clearInterval(this.clock);
+
+    // Stop timer interrupts
     clearInterval(this.timerInterrupt);
+
+    // Stop all connected peripherals
+    for (let p of this.peripherals) {
+      p.stop();
+    }
   }
 
   /**
