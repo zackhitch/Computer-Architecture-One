@@ -1,5 +1,51 @@
 # Binary review
 
+## On Numbers
+
+It's important to understand that when you have 12 apples on the table, it's
+still the same number of apples regardless of whether or not you say there are
+"12 apples" (decimal), or "C apples" (hexadecimal), or "1100 apples" (binary).
+
+The _count_ of the number of items doesn't change just because we refer to it in
+a numbering system of a different _base_.
+
+In fact, the only place the numbering system matters is when we write down the
+number someplace (e.g. print it on the screen or write it in source code, etc.).
+And remember that when you do write it down, the _count_ of what the number
+refers to remains the same regardless of the base you choose to write it down
+in.
+
+Re-read the last paragraph for good measure and keep it in mind in the following
+review.
+
+
+## On Bases
+
+The _base_ of a numbering system refers to how many digits the numbering system
+has. _Decimal_ numbers like we're used to have 10 digits: 0 through 9. Decimal
+numbers are _base-10_.
+
+Similarly, _binary_ numbers have two digits: 0 and 1. Binary is _base-2_.
+
+And _hexadecimal_ had 16 digits: 0-9 then A-F. It's _base-16_.
+
+Rarely you might come across _octal_; it's _base-8_. (In Unix when you issue a
+command like `chmod 755` or `chmod 644`, those numbers are octal.)
+
+These different bases have different ways of being represented in JavaScript:
+
+```javascript
+// All of these represent the number of apples on the table:
+
+let numA = 12;     // decimal
+let numB = 0xC;    // hexadecimal, leading 0x
+let numC = 0b1100; // binary, leading 0b
+
+numA === numB === numC; // TRUE!
+```
+
+## On Binary
+
 In decimal, we have 10 digits, 0-9. Multi-digit numbers have the 1's place, the
 10's place, and the 100's place, etc.
 
@@ -15,21 +61,6 @@ memorized at least up to 1024:
     2048 4096 8192 16384 32768 65536
 
 These are all powers of 2. 2^0 = 1, 2^2 = 2, 2^3 = 4, etc.
-
-*Remember that if you have a pile of apples, the count of apples in that pile is
-the same regardless of whether you write it down in base 10 (decimal), or base 2
-(binary). These are just two different ways of representing the same number!*
-
-Or put another way, this prints `TRUE`:
-
-```javascript
-
-// is 5 decimal equal to 101 binary?
-
-if (5 == 0b101) {
-    console.log('TRUE');
-}
-```
 
 Computers find it convenient to represent numbers in base 2 for a variety of
 reasons. One is that it's easy to represent as a voltage on a wire: 0 volts is a
@@ -194,6 +225,9 @@ Converting hex to binary is the same in reverse. 4 bits per hex digit.
 
 
 ## Exercises
+
+Perform the following conversions by hand, then write JS code to convert them
+and check your work.
 
 * Convert 78 decimal to binary.
 
