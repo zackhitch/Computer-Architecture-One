@@ -23,6 +23,7 @@ const JMP  = 0b01010000; // JMP R
 const JNE  = 0b01010010; // JNE R
 const LD   = 0b10011000; // Load R,R
 const LDI  = 0b10011001; // LDI R,I(mmediate)
+const MOD  = 0b10101100; // MOD R R
 const MUL  = 0b10101010; // MUL R,R
 const NOP  = 0b00000000; // NOP
 const NOT  = 0b01110000; // NOT R
@@ -137,6 +138,7 @@ class CPU {
     bt[JNE]  = this.JNE;
     bt[LD]   = this.LD;
     bt[LDI]  = this.LDI;
+    bt[MOD]  = this.MOD;
     bt[MUL]  = this.MUL;
     bt[NOP]  = this.NOP;
     bt[NOT]  = this.NOT;
@@ -255,11 +257,20 @@ class CPU {
 
       case 'DIV':
         if (valB === 0) {
-          console.log('ERROR: divide by 0');
+          console.log('ERROR: DIV 0');
           this.stopClock();
         }
 
         this.reg[regA] = valA / valB;
+        break;
+
+      case 'MOD':
+        if (valB === 0) {
+          console.log('ERROR: MOD 0');
+          this.stopClock();
+        }
+
+        this.reg[regA] = valA % valB;
         break;
 
       case 'INC':
@@ -526,6 +537,13 @@ class CPU {
    */
   LDI(reg, val) {
     this.reg[reg] = val;
+  }
+
+  /**
+   * MOD R,R
+   */
+  MOD(regA, regB) {
+    this.alu('MOD', regA, regB);
   }
 
   /**
