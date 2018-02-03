@@ -362,6 +362,21 @@ Machine code:
 10011001 00000rrr iiiiiiii
 ```
 
+### MOD
+
+`MOD registerA registerB`
+
+Divide the value in the first register by the value in the second,
+storing the _remainder_ of the result in registerA.
+
+If the value in the second register is 0, the system should print an
+error message and halt.
+
+Machine code:
+```
+10101100 00000aaa 00000bbb
+```
+
 ### MUL
 
 `MUL registerA registerB`
