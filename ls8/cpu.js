@@ -44,7 +44,7 @@ const SP = 0x07;  // Stack pointer R7
 // Interrupt mask bits
 const intMask = [
     (0x1 << 0), // timer
-    (0x1 << 1), // reserved
+    (0x1 << 1), // keyboard
     (0x1 << 2), // reserved
     (0x1 << 3), // reserved
     (0x1 << 4), // reserved
@@ -52,6 +52,11 @@ const intMask = [
     (0x1 << 6), // reserved
     (0x1 << 7), // reserved
 ];
+
+// Flag values for the FL register, bit numbers
+const FLAG_EQ = 0;
+const FLAG_GT = 1;
+const FLAG_LT = 2; // TODO is this right??
 
 /**
  * Class for simulating a simple Computer (CPU & memory)
@@ -64,12 +69,6 @@ class CPU {
     constructor(ram) {
         this.ram = ram;
 
-        // CPU flags
-        this.flags = {
-            equal: false,
-            interruptsEnabled: true
-        };
-
         this.reg = new Array(8).fill(0); // General-purpose registers
         
         this.reg[IM] = 0; // All interrupts masked
@@ -77,12 +76,41 @@ class CPU {
         this.reg[SP] = 0xf8; // Stack empty
 
         // Special-purpose registers
-        this.reg.PC  = 0; // Program Counter
-        this.reg.IR  = 0; // Instruction Register
+        this.reg.PC = 0; // Program Counter
+        this.reg.IR = 0; // Instruction Register
+        this.reg.FL = 0; // Flags
+
+        this.interruptsEnabled = true;
 
 		this.setupBranchTable();
     }
-	
+    
+    /**
+     * Set or reset a flag to 0 or 1
+     * 
+     * @param f FLAG_EQ, FLAG_GT, FLAG_LT
+     * @param v New value, 0, 1, true, false
+     */
+    setFlag(f, v) {
+        v = +v; // convert true to 1 and false to 0
+
+        if (v) {
+            this.reg.FL |= (1 << f);
+        } else {
+            this.reg.FL &= ~(1 << f);
+        }
+    }
+
+    /**
+     * Get a flag value
+     * 
+     * @param f FLAG_EQ, FLAG_GT, FLAG_LT
+     * @return 0 or 1
+     */
+    getFlag(f) {
+        return (this.reg.FL & (1 << f)) >> f;
+    }
+
 	/**
 	 * Sets up the branch table
 	 */
@@ -194,7 +222,9 @@ class CPU {
                 break;
 
             case 'CMP':
-                this.flags.equal = valA === valB;
+                this.setFlag(FLAG_EQ, valA === valB);
+                this.setFlag(FLAG_GT, valA > valB);
+                this.setFlag(FLAG_LT, valA < valB);
                 break;
         }
 
@@ -205,7 +235,7 @@ class CPU {
      */
     tick() {
         // Check to see if there's an interrupt
-        if (this.flags.interruptsEnabled) {
+        if (this.interruptsEnabled) {
             // Take the current interrupts and mask them out with the interrupt
             // mask
             const maskedInterrupts = this.reg[IS] & this.reg[IM];
@@ -217,7 +247,7 @@ class CPU {
                 if (((maskedInterrupts >> i) & 0x01) === 1) {
 
                     // Only handle one interrupt at a time
-                    this.flags.interruptsEnabled = false;
+                    this.interruptsEnabled = false;
 
                     // Clear this interrupt in the status register
                     this.reg[IS] &= ~intMask[i];
@@ -225,8 +255,11 @@ class CPU {
                     // Push return address
                     this._push(this.reg.PC);
 
-                    // Push registers R0-R7
-                    for (let r = 0; r <= 7; r++) {
+                    // Push flags
+                    this._push(this.reg.FL);
+
+                    // Push registers R0-R6
+                    for (let r = 0; r <= 6; r++) {
                         this._push(this.reg[r]);
                     }
 
@@ -366,21 +399,24 @@ class CPU {
      */
     IRET() {
         // Pop registers off stack
-        for (let r = 7; r >= 0; r--) {
+        for (let r = 6; r >= 0; r--) {
             this.reg[r] = this._pop();
         }
+
+        // Pop the flags register
+        this.reg.FL = this._pop();
 
         // Pop the return address off the stack and put straight in PC
         this.reg.PC = this._pop();
 
-        this.flags.interruptsEnabled = true;
+        this.interruptsEnabled = true;
     }
 
     /**
      * JEQ R
      */
     JEQ() {
-        if (this.flags.equal) {
+        if (this.getFlag(FLAG_EQ)) {
             // Set PC so we start executing here
             const reg = this.ram.read(this.reg.PC + 1);
             this.reg.PC = this.reg[reg];
@@ -403,7 +439,7 @@ class CPU {
      * JNE R
      */
     JNE() {
-        if (!this.flags.equal) {
+        if (!this.getFlag(FLAG_EQ)) {
             // Set PC so we start executing here
             const reg = this.ram.read(this.reg.PC + 1);
             this.reg.PC = this.reg[reg];
