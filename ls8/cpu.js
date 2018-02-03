@@ -56,7 +56,7 @@ const intMask = [
 // Flag values for the FL register, bit numbers
 const FLAG_EQ = 0;
 const FLAG_GT = 1;
-const FLAG_LT = 2; // TODO is this right??
+const FLAG_LT = 2;
 
 /**
  * Class for simulating a simple Computer (CPU & memory)
