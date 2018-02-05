@@ -74,7 +74,7 @@ class CPU {
     
     this.reg[IM] = 0; // All interrupts masked
     this.reg[IS] = 0; // No interrupts active
-    this.reg[SP] = 0xf8; // Stack empty
+    this.reg[SP] = 0xf4; // Stack empty
 
     // Special-purpose registers
     this.reg.PC = 0; // Program Counter
@@ -175,6 +175,15 @@ class CPU {
   }
 
   /**
+   * Raise an interrupt
+   * 
+   * @param n Interrupt number, 0-7
+   */
+  raiseInterrupt(n) {
+    this.reg[IS] |= intMask[n];
+  }
+
+  /**
    * Starts the clock ticking on the CPU
    */
   startClock() {
@@ -188,7 +197,7 @@ class CPU {
     // Set up the timer interrupt
     this.timerInterrupt = setInterval(() => {
       // Set the timer bit in the IS register
-      _this.reg[IS] |= intMask[0]; // Timer
+      this.raiseInterrupt(0);
     }, 1000);
   }
 
@@ -206,6 +215,13 @@ class CPU {
     for (let p of this.peripherals) {
       p.stop();
     }
+  }
+
+  /**
+   * Stops the CPU and exits
+   */
+  stop() {
+    this.stopClock();
   }
 
   /**
@@ -258,7 +274,7 @@ class CPU {
       case 'DIV':
         if (valB === 0) {
           console.log('ERROR: DIV 0');
-          this.stopClock();
+          this.stop();
         }
 
         this.reg[regA] = valA / valB;
@@ -267,7 +283,7 @@ class CPU {
       case 'MOD':
         if (valB === 0) {
           console.log('ERROR: MOD 0');
-          this.stopClock();
+          this.stop();
         }
 
         this.reg[regA] = valA % valB;
@@ -347,7 +363,7 @@ class CPU {
 
     if (handler === undefined) {
       console.log(`ERROR: invalid instruction ${this.reg.IR.toString(2)}`);
-      this.stopClock();
+      this.stop();
       return;
     }
 
@@ -432,7 +448,7 @@ class CPU {
    * HLT
    */
   HLT() {
-    this.stopClock();
+    this.stop();
   }
 
   /**
