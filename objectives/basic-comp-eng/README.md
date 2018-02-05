@@ -28,15 +28,10 @@ a single output. If that input is 1 (or TRUE), then the output is 0 (FALSE).
 
 Here is the truth table for _NOT_ (remember that 0 is FALSE and 1 is TRUE):
 
-```
-+---+-------+
 | A | NOT A |
-+===+=======+
+|:-:|:-----:|
 | 0 |   1   |
-+---+-------+
 | 1 |   0   |
-+---+-------+
-```
 
 > Quick note: _XOR_ is _exclusive OR_; its result is true if _only one_ of its
 > inputs is true. _NAND_ is "not and"; it's an _AND_ gate with a _NOT_ gate on
@@ -45,21 +40,14 @@ Here is the truth table for _NOT_ (remember that 0 is FALSE and 1 is TRUE):
 The output is the rightmost columns. The other columns on the left are inputs.
 You can clearly see that if `A` is `0`, `NOT A` is `1`.
 
-The truth table for other operations are similar, but has two inputs:
+The truth table for other operations are similar, but have two inputs:
 
-```
-+---+---+---------+--------+---------+---------+----------+
 | A | B | A AND B | A OR B | A XOR B | A NOR B | A NAND B |
-+===+===+=========+========+=========+=========+==========+
+|:-:|:-:|:-------:|:------:|:-------:|:-------:|:--------:|
 | 0 | 0 |    0    |   0    |    0    |    1    |    1     |
-+---+---+---------+--------+---------+---------+----------+
 | 0 | 1 |    0    |   1    |    1    |    0    |    1     |
-+---+---+---------+--------+---------+---------+----------+
 | 1 | 0 |    0    |   1    |    1    |    0    |    1     |
-+---+---+---------+--------+---------+---------+----------+
 | 1 | 1 |    1    |   1    |    0    |    0    |    0     |
-+---+---+---------+--------+---------+---------+----------+
-```
 
 When you are performing a boolean operation on a multi-bit number, each pair of
 bits is considered in isolation. In the following example, we perform a
