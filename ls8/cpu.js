@@ -187,11 +187,9 @@ class CPU {
    * Starts the clock ticking on the CPU
    */
   startClock() {
-    const _this = this;
-
     // Set up the main clock
     this.clock = setInterval(() => {
-      _this.tick();
+      this.tick();
     }, 1);
 
     // Set up the timer interrupt
