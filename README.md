@@ -10,17 +10,17 @@
 
 ## Implement the LS-8 Emulator
 
-> Objective: to gain a deeper understanding of how a CPU functions at a
-> low level.
+Objective: to gain a deeper understanding of how a CPU functions at a
+low level.
 
 We're going to write an emulator for the world-famous LambdaSchool-8 computer,
 otherwise known as LS-8! This is an 8-bit computer with 8-bit memory addressing,
 which is about as simple as it gets.
 
 An 8 bit CPU is one that only has 8 wires available for addresses (specifying
-where something is), computations, and instructions. With 8 bits, our CPU has a
-total of 256 bytes of memory and can only compute values up to 255. The CPU
-could support 256 instructions, as well, but we won't need them.
+where something is in memory), computations, and instructions. With 8 bits, our
+CPU has a total of 256 bytes of memory and can only compute values up to 255.
+The CPU could support 256 instructions, as well, but we won't need them.
 
 We'll design a memory subsystem, an ALU, and the main CPU emulator code
 in JS. Then we'll write code that loads a file of machine code
