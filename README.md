@@ -1,4 +1,3 @@
-
 # Computer Architecture One
 
 ## Objectives
