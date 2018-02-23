@@ -27,12 +27,12 @@ then prints it out:
 ```
 # print8.ls8
 
-00000100 # LDI R0,8
+10011001 # LDI R0,8
 00000000
 00001000
-00000110 # PRN R0
+01000011 # PRN R0
 00000000
-00011011 # HLT
+00000001 # HLT
 ```
 
 The value on the left is the machine code value of the instruction
@@ -73,7 +73,7 @@ The address is just the index into the memory array.
 
 These functions are basically 1-liners.
 
-### Step 2: Implement `tick()`
+### Step 3: Implement `tick()`
 
 This is the workhorse function of the entire processor. It's the most difficult
 part to write.
@@ -100,7 +100,7 @@ instruction for the next iteration of `tick()`. The number of bytes an
 instruction uses can be determined from the two high bits (bits 6-7) of the
 instruction opcode. See the LS-8 spec for details.
 
-### Step 3: Implement the `HLT` instruction handler
+### Step 4: Implement the `HLT` instruction handler
 
 Down in the `HLT()` function, you need to halt the CPU. For now, this just means
 calling `stopClock()` to stop the CPU clock. The emulator should exit
@@ -114,10 +114,10 @@ simply exits silently:
 
 ```
 # halt.ls8
-000110011 # HLT
+00000001 # HLT
 ```
 
-### Step 4: Add the LDI instruction
+### Step 5: Add the LDI instruction
 
 To add this, the `LDI` must be added to the `branchTable` similarly to `HLT`.
 
@@ -128,30 +128,30 @@ value to store.
 See the LS-8 spec for the details of what this instructions does.
 
 
-### Step 5: Add the `PRN` instruction
+### Step 6: Add the `PRN` instruction
 
 This is a very similar process to adding `LDI`, but the handler is simpler. See
 the LS-8 spec.
 
-### Step 6: Implement a Multiply and Print the Result
+### Step 7: Implement a Multiply and Print the Result
 
 Extend your LS8 emulator to support the following program:
 
 ```
 # mult.ls8
 
-00000100 # LDI R0,8
+10011001 # LDI R0,8
 00000000
 00001000
-00000100 # LDI R1,9
+10011001 # LDI R1,9
 00000001
 00001001
-00000101 # MUL R0,R1 <-- this!
+10101010 # MUL R0,R1
 00000000
 00000001
-00000110 # PRN R0, should print 72
+01000011 # PRN R0
 00000000
-00011011 # HLT
+00000001 # HLT
 ```
 
 The following command line input:
