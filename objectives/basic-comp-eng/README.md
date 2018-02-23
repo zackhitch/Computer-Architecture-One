@@ -63,7 +63,7 @@ AND 1 1 1 1 0 0 0 0
 
 ## Architecture
 
-![Basic Architecture](https://www.lucidchart.com/publicSegments/view/8e06c9e0-0087-4c53-9486-c5aaca137ff3/image.png)
+![Basic Architecture](img/basic-arch.png)
 
 Computers have grown radically in transistor density and clock speed, but the
 overall design of your computer has not changed tremendously since the 8086 in
@@ -72,27 +72,29 @@ component architecture, where separate components can be upgraded, swapped, or
 redesigned for the next version with minimal impact on other components. It
 helps to visualize these components on a full size ATX form-factor motherboard:
 
-![Image of motherboard](https://www.dropbox.com/s/7jc00mllz3vs8ta/Lambda%20School%20Motherboard.jpg?raw=1)
+![Image of motherboard](img/motherboard.jpg)
 An image of an older motherboard - many of the base components are the same, but
 the front size bus is missing on modern motherboards because it is now inside of
 the CPU.
 
-![LGA-1151 socket](https://upload.wikimedia.org/wikipedia/commons/c/c9/Core_i7_bottom.png)
+![LGA-1151 socket](img/Core_i7_bottom.png)
 The pins on the bottom of the CPU that connect it with the rest of the system
 components: clock controls, buses, serial interfaces, interrupts, power
 
-![i7 CPU on motherboard](https://commons.wikimedia.org/wiki/File:Intel_i7_4770_CPU_on_an_ASUS_Gryphon_Z87_uATX_motherboard.jpg)
+![Kaby Lake Quad Core](img/kaby-lake-quad.png)
 
-![Kaby Lake Quad Core](https://en.wikichip.org/w/images/thumb/d/dc/kaby_lake_%28quad_core%29_%28annotated%29.png/800px-kaby_lake_%28quad_core%29_%28annotated%29.png)
-
-![Quad core manual diagram](https://www.dropbox.com/s/3xli0imznavxdnf/Kaby%20Lake%20Core%20design.png?raw=1)
+![Quad core manual diagram](img/quad-core-diagram.png)
 
 [Amazing explanation of Kaby Lake CPU architecture](https://en.wikichip.org/wiki/intel/microarchitectures/kaby_lake)
 
 ## Elements of the CPU
 
 CPU, Clock(s), Program Counter, Instruction Register, Arithmetic Logic Unit,
-bus(es), RAM, Registers, Operations
+bus(es), RAM, Registers, Operations.
+
+Here is a simplified CPU diagram:
+
+![Simplified CPU diagram](img/simple-cpu.png)
 
 * *CPU*: a general purpose hardware component built with custom hardware to read
   and write memory, perform arithmetic. The CPU executes instructions that are
