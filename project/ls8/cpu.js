@@ -89,22 +89,27 @@ class CPU {
      * Advances the CPU one cycle
      */
     tick() {
+        // Load the instruction register (OR) from the current PC
         // !!! IMPLEMENT ME
-
-        // Load the instruction register from the current PC
 
         // Debugging output
         //console.log(`${this.reg.PC}: ${this.reg.IR.toString(2)}`);
 
-        // Based on the value in the Instruction Register, jump to the
+        // Based on the value in the Instruction Register, locate the
         // appropriate hander in the branchTable
+        // !!! IMPLEMENT ME
+        // let handler = ...
 
         // Check that the handler is defined, halt if not (invalid
         // instruction)
+        // !!! IMPLEMENT ME
 
         // We need to use call() so we can set the "this" value inside
         // the handler (otherwise it will be undefined in the handler)
-        handler.call(this);
+        handler.call(this, operandA, operandB);
+
+        // Increment the PC register to go to the next instruction
+        // !!! IMPLEMENT ME
     }
 
     // INSTRUCTION HANDLER CODE:

@@ -125,7 +125,7 @@ The number of operands `AA` is useful to know because the total number of bytes 
 instruction is the number of operands + 1 (for the opcode). This
 allows you to know how far to advance the `PC` with each instruction.
 
-It might also be useful to check the other bits in an emulator implemention, but
+It might also be useful to check the other bits in an emulator implementation, but
 there are other ways to code it that don't do these checks.
 
 
