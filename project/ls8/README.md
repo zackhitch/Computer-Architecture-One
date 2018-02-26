@@ -35,10 +35,15 @@ then prints it out:
 00000001 # HLT
 ```
 
-The value on the left is the machine code value of the instruction
-(_opcode_) or its immediate argument(s) (the _operands_).
+The binary numeric value on the left in the `print8.ls8` code above is either:
 
-This requires the implementation of three instructions:
+* the machine code value of the instruction (e.g. `10011001` for `LDI`), also known as the _opcode_
+
+or
+
+* one of the opcode's arguments (e.g. `00000000` for R0 or `00001000` for the value 8), also known as the _operand_.
+
+This code above requires the implementation of three instructions:
 
 * `LDI`: load "immediate", store a value in a register
 * `PRN`: a pseudo-instruction that prints the numeric value stored in a register
