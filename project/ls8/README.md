@@ -37,11 +37,13 @@ then prints it out:
 
 The binary numeric value on the left in the `print8.ls8` code above is either:
 
-* the machine code value of the instruction (e.g. `10011001` for `LDI`), also known as the _opcode_
+* the machine code value of the instruction (e.g. `10011001` for `LDI`), also
+  known as the _opcode_
 
 or
 
-* one of the opcode's arguments (e.g. `00000000` for R0 or `00001000` for the value 8), also known as the _operand_.
+* one of the opcode's arguments (e.g. `00000000` for R0 or `00001000` for the
+  value `8`), also known as the _operands_.
 
 This code above requires the implementation of three instructions:
 
