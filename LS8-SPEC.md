@@ -116,10 +116,10 @@ See `IRET`, below, for returning from an interrupt.
 
 Meanings of the bits in the first byte of each instruction: `AABCCDDD`
 
-`AA` Number of operands for this opcode, 0-2
-`B` 1 if this is an ALU operation
-`CC` Category, 0-3
-`DDD` Instruction, 0-7
+* `AA` Number of operands for this opcode, 0-2
+* `B` 1 if this is an ALU operation
+* `CC` Category, 0-3
+* `DDD` Instruction, 0-7
 
 The number of operands `AA` is useful to know because the total number of bytes in any
 instruction is the number of operands + 1 (for the opcode). This
