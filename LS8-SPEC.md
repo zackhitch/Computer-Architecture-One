@@ -69,7 +69,7 @@ Memory map:
 
 ## Stack
 
-The SP points at the value at the top of the stack, or at address `F3`
+The SP points at the value at the top of the stack, or at address `F4`
 if the stack is empty.
 
 
@@ -187,10 +187,10 @@ Compare the value in two registers.
 
 * If they are equal, set the Equal `E` flag to 1, otherwise set it to 0.
 
-* If registerA is less than registerB, set the Less-than `T` flag to 1,
+* If registerA is less than registerB, set the Less-than `L` flag to 1,
   otherwise set it to 0.
 
-* If registerA is greater than registerB, set the Greater-than `T` flag
+* If registerA is greater than registerB, set the Greater-than `G` flag
   to 1, otherwise set it to 0.
 
 Machine code:
