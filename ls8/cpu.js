@@ -618,7 +618,8 @@ class CPU {
    * PRN R
    */
   PRN(reg) {
-    fs.writeSync(process.stdout.fd, this.reg[reg]);
+    // fs.writeSync(process.stdout.fd, this.reg[reg]); // without newline
+    console.log(this.reg[reg]); // with newline
   }
 
   /**
