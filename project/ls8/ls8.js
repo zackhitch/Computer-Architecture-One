@@ -1,69 +1,28 @@
-const fs = require('fs');
 const RAM = require('./ram');
 const CPU = require('./cpu');
 
 /**
- * Process a loaded file
+ * Load an LS8 program into memory
+ *
+ * TODO: load this from a file on disk instead of having it hardcoded
  */
-function processFile(content, cpu, onComplete) {
-    // Pointer to the memory address in the CPU that we're
-    // loading a value into:
-    let curAddr = 0;
-    
-    // Split the lines of the content up by newline
-    const lines = content.split('\n');
+function loadMemory() {
 
-    // Loop through each line of machine code
+    // Hardcoded program to print the number 8 on the console
 
-    for (let line of lines) {
+    const program = [ // print8.ls8
+        "10011001", // LDI R0,8  Store 8 into R0
+        "00000000",
+        "00001000",
+        "01000011", // PRN R0    Print the value in R0
+        "00000000",
+        "00000001"  // HLT       Halt and quit
+    ];
 
-        // !!! IMPLEMENT ME
-
-        // Strip comments
-
-        // Remove whitespace from either end of the line
-
-        // Ignore empty lines
-
-        // Convert from binary string to numeric value
-
-        // Store in the CPU with the .poke() function
-
-        // And on to the next one
-        curAddr++;
+    // Load the program into the CPU's memory a byte at a time
+    for (let i = 0; i < program.length; i++) {
+        cpu.poke(i, parseInt(program[i], 2));
     }
-
-    onComplete(cpu);
-}
-
-/**
- * Load the instructions into the CPU from stdin
- */
-function loadFileFromStdin(cpu, onComplete) {
-    let content = '';
-
-    // Read everything from standard input, stolen from:
-    // https://stackoverflow.com/questions/13410960/how-to-read-an-entire-text-stream-in-node-js
-    process.stdin.resume();
-    process.stdin.on('data', function(buf) { content += buf.toString(); });
-    process.stdin.on('end', () => { processFile(content, cpu, onComplete); });
-}
-
-/**
- * Load the instructions into the CPU from a file
- */
-function loadFile(filename, cpu, onComplete) {
-    const content = fs.readFileSync(filename, 'utf-8');
-    processFile(content, cpu, onComplete);
-}
-
-/**
- * On File Loaded
- * 
- * CPU is set up, start it running
- */
-function onFileLoaded(cpu) {
-    cpu.startClock();
 }
 
 /**
@@ -73,17 +32,8 @@ function onFileLoaded(cpu) {
 let ram = new RAM(256);
 let cpu = new CPU(ram);
 
-// Get remaining command line arguments
-const argv = process.argv.slice(2);
+// TODO: get name of ls8 file to load from command line
 
-// Check arguments
-if (argv.length === 0) {
-    // Read from stdin
-    loadFileFromStdin(cpu, onFileLoaded);
-} else if (argv.length == 1) {
-    // Read from file
-    loadFile(argv[0], cpu, onFileLoaded);
-} else {
-    console.error('usage: ls8 [machinecodefile]');
-    process.exit(1);
-}
+loadMemory(cpu);
+
+cpu.startClock();
