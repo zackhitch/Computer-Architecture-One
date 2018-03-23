@@ -269,8 +269,3 @@ the value is `undefined`, then you move the `PC` to the next instruction like
 normal. But if the value is a number, then you move the `PC` directly to that
 address.
 
-### Stretch Goal
-
-Add a timer interrupt and a handler that prints the letter `A` every second.
-
-Add a keyboard interrupt that prints the key pressed to the console.
