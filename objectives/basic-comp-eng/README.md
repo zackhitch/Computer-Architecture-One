@@ -107,9 +107,14 @@ Here is a simplified CPU diagram:
 * *Registers*: Small memory locations within the CPU used for retrieving
   instructions, reading and writing memory, and executing commands.
 
-* *Instruction Register*: A special memory register that decodes, pipelines, and
-  executes the current instruction (which was read from the memory pointed to by
-  the program counter).
+* *Program Counter* (PC): A special register that holds the address of the
+  currently-executing instruction. (_Address_ is the index into the memory
+  array.) As the program executes, the PC moves from this current instruction to
+  the next one.
+
+* *Instruction Register* (IR): A special memory-related register that decodes,
+  pipelines, and executes the current instruction (which was read from the
+  memory pointed to by the program counter).
 
 * *Arithmetic Logic Unit* (ALU): Part of the CPU that handles basic arithmetic and
   boolean comparisons.
