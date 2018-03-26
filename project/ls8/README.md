@@ -86,7 +86,7 @@ other times it's a constant value (in the case of `LDI`). Using
 `operandA` and `operandB` in case the instruction needs them.
 
 Then, depending on the value of the opcode, perform the actions needed for the
-instruction per the LS-8 spec.
+instruction per the LS-8 spec. Maybe a `switch` statement...? Plenty of options.
 
 After the handler returns, the `PC` needs to be updated to point to the next
 instruction for the next iteration of `tick()`. The number of bytes an
@@ -102,13 +102,6 @@ automatically once the clock stops.
 > It exits because node only runs as long as you're in a function or you have
 > timers active.
 
-At this point, you should be able to run this program, which has no output and
-simply exits silently:
-
-```
-# halt.ls8
-00000001 # HLT
-```
 
 ### Step 4: Add the LDI instruction
 
