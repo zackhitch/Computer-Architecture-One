@@ -56,10 +56,8 @@ class CPU {
      * Starts the clock ticking on the CPU
      */
     startClock() {
-        const _this = this;
-
         this.clock = setInterval(() => {
-            _this.tick();
+            this.tick();
         }, 1);
     }
 
