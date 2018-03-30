@@ -30,10 +30,8 @@ class CPU {
      * Starts the clock ticking on the CPU
      */
     startClock() {
-        const _this = this;
-
         this.clock = setInterval(() => {
-            _this.tick();
+            this.tick();
         }, 1); // 1 ms delay == 1 KHz clock == 0.000001 GHz
     }
 
@@ -68,7 +66,8 @@ class CPU {
     tick() {
         // Load the instruction register (IR--can just be a local variable here)
         // from the memory address pointed to by the PC. (I.e. the PC holds the
-        // index into memory of the next instruction.)
+        // index into memory of the instruction that's about to be executed
+        // right now.)
 
         // !!! IMPLEMENT ME
 

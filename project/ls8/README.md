@@ -103,7 +103,7 @@ automatically once the clock stops.
 > timers active.
 
 
-### Step 4: Add the LDI instruction
+### Step 4: Add the `LDI` instruction
 
 This instruction sets a specified register to a specified value.
 
@@ -115,6 +115,9 @@ value.
 
 This is a very similar process to adding `LDI`, but the handler is simpler. See
 the LS-8 spec.
+
+*At this point, you should be able to run the program and have it print `8` to
+the console!*
 
 ### Step 6: Implement a Multiply and Print the Result
 
