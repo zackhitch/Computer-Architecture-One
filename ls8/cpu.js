@@ -86,6 +86,9 @@ class CPU {
     // Peripherals e.g. keyboards attach to this list
     this.peripherals = [];
 
+    // True if we should advance the PC normally this tick
+    this.pcAdvance = true;
+
     this.setupBranchTable();
   }
   
@@ -376,18 +379,17 @@ class CPU {
     // E.g. CALL, JMP and variants, IRET, and RET all set the PC to a new
     // destination.
 
-    const newPC = handler(operandA, operandB);
+    this.pcAdvance = true;
+
+    handler(operandA, operandB);
     
-    if (newPC === undefined) {
+    if (this.pcAdvance) {
       // Move the PC to the next instruction.
       // First get the instruction size, then add to PC
       const operandCount = (this.reg.IR >> 6) & 0b11; // 
       const instSize = operandCount + 1;
 
       this.alu('ADD', 'PC', null, instSize); // Next instruction
-    } else {
-      // Handler wants the PC set to exactly this
-      this.reg.PC = newPC;
     }
   }
 
@@ -432,7 +434,8 @@ class CPU {
     const addr = this.reg[reg];
      
     // Set PC so we start executing here
-    return addr;
+    this.reg.PC = addr;
+    this.pcAdvance = false;
   }
 
   /**
@@ -480,11 +483,11 @@ class CPU {
     this.reg.FL = this._pop();
 
     // Pop the return address off the stack and put straight in PC
-    const nextPC = this._pop();
+    this.reg.PC = this._pop();
+    this.pcAdvance = false;
 
+    // And interrupts back on
     this.interruptsEnabled = true;
-
-    return nextPC;
   }
 
   /**
@@ -493,7 +496,8 @@ class CPU {
   JEQ(reg) {
     if (this.getFlag(FLAG_EQ)) {
       // Set PC so we start executing here
-      return this.reg[reg];
+      this.reg.PC = this.reg[reg];
+      this.pcAdvance = false;
     }
   }
 
@@ -503,7 +507,8 @@ class CPU {
   JGT(reg) {
     if (this.getFlag(FLAG_GT)) {
       // Set PC so we start executing here
-      return this.reg[reg];
+      this.reg.PC = this.reg[reg];
+      this.pcAdvance = false;
     }
   }
 
@@ -513,7 +518,8 @@ class CPU {
   JLT(reg) {
     if (this.getFlag(FLAG_LT)) {
       // Set PC so we start executing here
-      return this.reg[reg];
+      this.reg.PC = this.reg[reg];
+      this.pcAdvance = false;
     }
   }
 
@@ -522,7 +528,8 @@ class CPU {
    */
   JMP(reg) {
     // Set PC so we start executing here
-    return this.reg[reg];
+    this.reg.PC = this.reg[reg];
+    this.pcAdvance = false;
   }
 
   /**
@@ -531,7 +538,8 @@ class CPU {
   JNE(reg) {
     if (!this.getFlag(FLAG_EQ)) {
       // Set PC so we start executing here
-      return this.reg[reg];
+      this.reg.PC = this.reg[reg];
+      this.pcAdvance = false;
     }
   }
 
@@ -645,9 +653,8 @@ class CPU {
    */
   RET() {
     // Pop the return address off the stack and put straight in PC
-    const nextPC = this._pop();
-
-    return nextPC;
+    this.reg.PC = this._pop();
+    this.pcAdvance = false;
   }
 
   /**
