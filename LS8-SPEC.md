@@ -71,8 +71,8 @@ Memory map:
 
 ## Stack
 
-The SP points at the value at the top of the stack, or at address `F4`
-if the stack is empty.
+The SP points at the value at the top of the stack (most recently pushed), or at
+address `F4` if the stack is empty.
 
 
 ## Interrupts
