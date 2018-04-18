@@ -16,9 +16,9 @@ class CPU {
         this.reg = new Array(8).fill(0); // General-purpose registers R0-R7
         
         // Special-purpose registers
-        this.reg.PC = 0; // Program Counter
+        this.PC = 0; // Program Counter
     }
-	
+    
     /**
      * Store value in memory address, useful for program loading
      */
@@ -72,7 +72,7 @@ class CPU {
         // !!! IMPLEMENT ME
 
         // Debugging output
-        //console.log(`${this.reg.PC}: ${IR.toString(2)}`);
+        //console.log(`${this.PC}: ${IR.toString(2)}`);
 
         // Get the two bytes in memory _after_ the PC in case the instruction
         // needs them.
