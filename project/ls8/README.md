@@ -360,7 +360,7 @@ for (let i = 0; i < 8; i++) {
 ```
 
 (If the no interrupt bits are set, then stop processing interrupts and continue
-executing the next instruction as per usual.)
+executing the current instruction as per usual.)
 
 If `interruptHappened`, check the LS-8 spec for details on what to do.
 
