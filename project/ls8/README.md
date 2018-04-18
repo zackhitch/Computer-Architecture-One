@@ -260,10 +260,10 @@ problem is that some instructions want to execute and move to the next
 instruction like normal, but others, like `CALL` and `JMP` want to go to a
 specific address.
 
-A modification you can make is allow handlers to optionally return a value. If
-the value is `undefined`, then you move the `PC` to the next instruction like
-normal. But if the value is a number, then you move the `PC` directly to that
-address.
+In **any** case where the instruction handler sets the `PC` directly, you
+_don't_ want to advance the PC to the next instruction. So you'll have to set up
+a special case for those types of instructions.
+
 
 ## Stretch Goal
 
