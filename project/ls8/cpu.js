@@ -1,12 +1,12 @@
 /**
  * LS-8 v2.0 emulator skeleton code
  */
-const ADD = 0b10101000;
-const MUL = 0b10101010;
-const PRN = 0b01000011;
-const LDI = 0b10011001;
-const CMP = 0b10100000;
-const HLT = 0b00000001;
+const ADD = '0b10101000';
+const MUL = '0b10101010';
+const PRN = '0b01000011';
+const LDI = '0b10011001';
+const CMP = '0b10100000';
+const HLT = '0b00000001';
 
 /**
  * Class for simulating a simple Computer (CPU & memory)
@@ -66,9 +66,9 @@ class CPU {
       case 'MUL':
         this.reg[regA] *= this.reg[regB];
         break;
-      default:
-        console.log("You've hit the default case of alu()! /shrug");
-        break;
+      //   default:
+      //     console.log("You've hit the default case of alu()! /shrug");
+      //     break;
     }
   }
 
@@ -108,9 +108,9 @@ class CPU {
       case HLT:
         this.stopClock();
         break;
-      default:
-        console.log("You've hit the default case of tick()! /shrug");
-        break;
+      //   default:
+      //     console.log("You've hit the default case of tick()! /shrug");
+      //     break;
     }
     // Increment the PC register to go to the next instruction. Instructions
     // can be 1, 2, or 3 bytes long. Hint: the high 2 bits of the
