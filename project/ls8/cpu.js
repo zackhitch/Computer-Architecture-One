@@ -93,19 +93,19 @@ class CPU {
     // outlined in the LS-8 spec.
     // !!! IMPLEMENT ME
     switch (this.ram.read(IR)) {
-      case 'ADD':
+      case ADD:
         this.alu('ADD', operandA, operandB);
         break;
-      case 'MUL':
+      case MUL:
         this.alu('MUL', operandA, operandB);
         break;
-      case 'PRN':
+      case PRN:
         console.log(this.reg[operandA]);
         break;
-      case 'LDI':
+      case LDI:
         this.reg[operandA] = operandB;
         break;
-      case 'HLT':
+      case HLT:
         this.stopClock();
         break;
       default:
