@@ -1,12 +1,12 @@
 /**
  * LS-8 v2.0 emulator skeleton code
  */
-const ADD = '0b10101000';
-const MUL = '0b10101010';
-const PRN = '0b01000011';
-const LDI = '0b10011001';
-const CMP = '0b10100000';
-const HLT = '0b00000001';
+const ADD = 0b10101000;
+const MUL = 0b10101010;
+const PRN = 0b01000011;
+const LDI = 0b10011001;
+const CMP = 0b10100000;
+const HLT = 0b00000001;
 
 /**
  * Class for simulating a simple Computer (CPU & memory)
@@ -66,9 +66,9 @@ class CPU {
       case 'MUL':
         this.reg[regA] *= this.reg[regB];
         break;
-      //   default:
-      //     console.log("You've hit the default case of alu()! /shrug");
-      //     break;
+      default:
+        console.log("You've hit the default case of alu()! /shrug");
+        break;
     }
   }
 
@@ -81,9 +81,10 @@ class CPU {
     // index into memory of the instruction that's about to be executed
     // right now.)
     // !!! IMPLEMENT ME
-    let IR = this.PC;
+    let IR = this.ram.read(this.PC);
     // Debugging output
-    //console.log(`${this.PC}: ${IR.toString(2)}`);
+    // console.log(`${this.PC}: ${IR.toString(2)}`);
+    // console.log(`IR: ${IR}`);
     // Get the two bytes in memory _after_ the PC in case the instruction
     // needs them.
     // !!! IMPLEMENT ME
@@ -92,7 +93,7 @@ class CPU {
     // Execute the instruction. Perform the actions for the instruction as
     // outlined in the LS-8 spec.
     // !!! IMPLEMENT ME
-    switch (this.ram.read(IR)) {
+    switch (IR) {
       case ADD:
         this.alu('ADD', operandA, operandB);
         break;
@@ -108,16 +109,16 @@ class CPU {
       case HLT:
         this.stopClock();
         break;
-      //   default:
-      //     console.log("You've hit the default case of tick()! /shrug");
-      //     break;
+      default:
+        console.log("You've hit the default case of tick()! /shrug");
+        break;
     }
     // Increment the PC register to go to the next instruction. Instructions
     // can be 1, 2, or 3 bytes long. Hint: the high 2 bits of the
     // instruction byte tells you how many bytes follow the instruction byte
     // for any particular instruction.
     // !!! IMPLEMENT ME
-    this.PC += this.ram.read(IR) >> 6;
+    this.PC += 1 + (IR >> 6);
   }
 }
 
