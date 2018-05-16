@@ -15,6 +15,10 @@ const JMP = 0b01010000;
 const LD = 0b10011000;
 const PRA = 0b01000010;
 const AND = 0b10110011;
+const POP = 0b01001100;
+const PUSH = 0b01001101;
+
+const SP = 7; // Stack Pointer - Represented by R7.
 
 /**
  * Class for simulating a simple Computer (CPU & memory)
@@ -30,6 +34,8 @@ class CPU {
 
     // Special-purpose registers
     this.PC = 0; // Program Counter
+
+    this.reg[SP] = 0xf4; // Stack Pointer Starting empty at address F4.
   }
 
   /**
@@ -87,6 +93,12 @@ class CPU {
       case 'AND':
         this.reg[regA] &= this.reg[regB];
         break;
+      case 'INC':
+        this.reg[regA]++;
+        break;
+      case 'DEC':
+        this.reg[regA]--;
+        break;
       default:
         console.log("You've hit the default case of alu()! /shrug");
         break;
@@ -130,6 +142,12 @@ class CPU {
       case AND:
         this.alu('AND', operandA, operandB);
         break;
+      case INC:
+        this.alu('INC', operandA);
+        break;
+      case DEC:
+        this.alu('DEC', operandA);
+        break;
       case PRN:
         console.log(this.reg[operandA]);
         break;
@@ -142,15 +160,17 @@ class CPU {
       case LD:
         this.reg[operandA] = this.reg[operandB];
         break;
-      case INC:
-        this.reg[operandA]++;
-        break;
-      case DEC:
-        this.reg[operandA]--;
-        break;
       case JMP:
         // this isn't going to work since we increment PC after the switch statement
         this.PC = this.reg[operandA];
+        break;
+      case POP:
+        this.reg[operandA] = this.ram.read(this.reg[SP]);
+        this.alu('INC', SP);
+        break;
+      case PUSH:
+        this.alu('DEC', SP);
+        this.ram.write(this.reg[SP], this.reg[operandA]);
         break;
       case HLT:
         this.stopClock();
