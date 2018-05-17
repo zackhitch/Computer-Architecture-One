@@ -5,18 +5,23 @@ const ADD = 0b10101000;
 const MUL = 0b10101010;
 const PRN = 0b01000011;
 const LDI = 0b10011001;
-const CMP = 0b10100000;
 const HLT = 0b00000001;
 const SUB = 0b10101001;
 const DIV = 0b10101011;
 const INC = 0b01111000;
 const DEC = 0b01111001;
-const JMP = 0b01010000;
 const LD = 0b10011000;
 const PRA = 0b01000010;
 const AND = 0b10110011;
 const POP = 0b01001100;
 const PUSH = 0b01001101;
+const CALL = 0b01001000;
+const RET = 0b00001001;
+const ST = 0b10011010;
+const CMP = 0b10100000;
+const JMP = 0b01010000;
+const JEQ = 0b01010001;
+const JNE = 0b01010010;
 
 const SP = 7; // Stack Pointer - Represented by R7.
 
@@ -32,10 +37,12 @@ class CPU {
 
     this.reg = new Array(8).fill(0); // General-purpose registers R0-R7
 
+    this.reg[SP] = 0xf4; // Stack Pointer Starting empty at address F4.
+
     // Special-purpose registers
     this.PC = 0; // Program Counter
 
-    this.reg[SP] = 0xf4; // Stack Pointer Starting empty at address F4.
+    this.FL = 0b00000000;
   }
 
   /**
@@ -60,7 +67,6 @@ class CPU {
   stopClock() {
     clearInterval(this.clock);
   }
-
   /**
    * ALU functionality
    *
@@ -109,6 +115,16 @@ class CPU {
    * Advances the CPU one cycle
    */
   tick() {
+    const push_it = x => {
+      this.alu('DEC', SP);
+      this.ram.write(this.reg[SP], x);
+    };
+
+    const pop_it = () => {
+      const popped = this.ram.read(this.reg[SP]);
+      this.alu('INC', SP);
+      return popped;
+    };
     // Load the instruction register (IR--can just be a local variable here)
     // from the memory address pointed to by the PC. (I.e. the PC holds the
     // index into memory of the instruction that's about to be executed
@@ -165,12 +181,45 @@ class CPU {
         this.PC = this.reg[operandA];
         break;
       case POP:
-        this.reg[operandA] = this.ram.read(this.reg[SP]);
-        this.alu('INC', SP);
+        this.reg[operandA] = pop_it();
         break;
       case PUSH:
+        push_it(this.reg[operandA]);
+        break;
+      case CALL:
         this.alu('DEC', SP);
-        this.ram.write(this.reg[SP], this.reg[operandA]);
+        push_it(this.PC + 2);
+        this.PC = this.reg[operandA];
+        break;
+      case RET:
+        this.PC = this.ram.read(this.reg[SP]);
+        this.alu('INC', SP);
+        break;
+      case ST:
+        this.ram.write(this.reg[operandA], this.reg[operandB]);
+        break;
+      case CMP:
+        if (this.reg[operandA] < this.reg[operandB]) this.FL = 0b00000100;
+        if (this.reg[operandA] > this.reg[operandB]) this.FL = 0b00000010;
+        if (this.reg[operandA] === this.reg[operandB]) this.FL = 0b00000001;
+        // else this.FL = 0b00000000;
+        break;
+      case JMP:
+        this.PC = this.reg[operandA];
+        break;
+      case JEQ:
+        if (this.FL === 0b00000001) {
+          this.PC = this.reg[operandA];
+        } else {
+          this.PC += 1 + (IR >> 6);
+        }
+        break;
+      case JNE:
+        if (!this.FL === 0b00000001) {
+          this.PC = this.reg[operandA];
+        } else {
+          this.PC += 1 + (IR >> 6);
+        }
         break;
       case HLT:
         this.stopClock();
@@ -184,7 +233,9 @@ class CPU {
     // instruction byte tells you how many bytes follow the instruction byte
     // for any particular instruction.
     // !!! IMPLEMENT ME
-    this.PC += 1 + (IR >> 6);
+    if (IR !== CALL && IR !== JMP && IR !== RET && IR !== JEQ && IR !== JNE) {
+      this.PC += 1 + (IR >> 6);
+    }
   }
 }
 
