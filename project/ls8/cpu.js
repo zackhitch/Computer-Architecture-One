@@ -215,7 +215,7 @@ class CPU {
         }
         break;
       case JNE:
-        if (!this.FL === 0b00000001) {
+        if (this.FL !== 0b00000001) {
           this.PC = this.reg[operandA];
         } else {
           this.PC += 1 + (IR >> 6);
